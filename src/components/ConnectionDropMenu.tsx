@@ -80,6 +80,15 @@ const IMAGE_TARGET_OPTIONS: MenuOption[] = [
     ),
   },
   {
+    type: "removeBackground",
+    label: "Remove Background",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0 0-.274 1.059-.22 1.5M14.25 7.5l2.25-2.25m0 0l2.25 2.25M16.5 5.25l-2.25 2.25m2.25-2.25l-2.25-2.25M3 20.25h18M5.25 5.25h13.5" />
+      </svg>
+    ),
+  },
+  {
     type: "imageCompare",
     label: "Image Compare",
     icon: (

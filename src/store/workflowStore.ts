@@ -84,6 +84,7 @@ import {
   executeEaseCurve,
   executeVideoTrim,
   executeVideoFrameGrab,
+  executeRemoveBackground,
   executeGlbViewer,
   executeRouter,
   executeSwitch,
@@ -453,7 +454,7 @@ export { GROUP_COLORS } from "./utils/nodeDefaults";
 
 /** Node types whose output carries image data */
 const IMAGE_SOURCE_NODE_TYPES = new Set<string>([
-  "imageInput", "annotation", "nanoBanana", "glbViewer", "videoFrameGrab",
+  "imageInput", "annotation", "nanoBanana", "glbViewer", "videoFrameGrab", "removeBackground",
 ]);
 
 /**
@@ -1410,6 +1411,9 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
           case "videoFrameGrab":
             await executeVideoFrameGrab(executionCtx);
             break;
+          case "removeBackground":
+            await executeRemoveBackground(executionCtx);
+            break;
           case "router":
             await executeRouter(executionCtx);
             break;
@@ -1787,6 +1791,11 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
         set({ isRunning: false, currentNodeIds: [], _abortController: null });
         await logger.endSession();
         return;
+      } else if (node.type === "removeBackground") {
+        await executeRemoveBackground(executionCtx);
+        set({ isRunning: false, currentNodeIds: [], _abortController: null });
+        await logger.endSession();
+        return;
       } else if (node.type === "output") {
         await executeOutput(executionCtx);
         set({ isRunning: false, currentNodeIds: [], _abortController: null });
@@ -1964,6 +1973,9 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
           break;
         case "videoFrameGrab":
           await executeVideoFrameGrab(executionCtx);
+          break;
+        case "removeBackground":
+          await executeRemoveBackground(executionCtx);
           break;
         case "router":
           await executeRouter(executionCtx);

@@ -43,6 +43,7 @@ import {
   EaseCurveNode,
   VideoTrimNode,
   VideoFrameGrabNode,
+  RemoveBackgroundNode,
   RouterNode,
   SwitchNode,
   ConditionalSwitchNode,
@@ -104,6 +105,7 @@ const nodeTypes: NodeTypes = {
   easeCurve: EaseCurveNode,
   videoTrim: VideoTrimNode,
   videoFrameGrab: VideoFrameGrabNode,
+  removeBackground: RemoveBackgroundNode,
   router: RouterNode,
   switch: SwitchNode,
   conditionalSwitch: ConditionalSwitchNode,
@@ -183,6 +185,8 @@ const getNodeHandles = (nodeType: string): { inputs: string[]; outputs: string[]
       return { inputs: ["video"], outputs: ["video"] };
     case "videoFrameGrab":
       return { inputs: ["video"], outputs: ["image"] };
+    case "removeBackground":
+      return { inputs: ["image"], outputs: ["image"] };
     case "router":
       return { inputs: ["image", "text", "video", "audio", "3d", "easeCurve", "generic-input"], outputs: ["image", "text", "video", "audio", "3d", "easeCurve", "generic-output"] };
     case "switch":
@@ -469,6 +473,7 @@ export function WorkflowCanvas() {
     easeCurve: 'Ease Curve',
     videoTrim: 'Video Trim',
     videoFrameGrab: 'Frame Grab',
+    removeBackground: 'Remove Background',
     router: 'Router',
     switch: 'Switch',
     conditionalSwitch: 'Conditional Switch',
@@ -1252,10 +1257,10 @@ export function WorkflowCanvas() {
           sourceHandleIdForNewNode = "default";
         }
       } else if (handleType === "image") {
-        if (nodeType === "annotation" || nodeType === "output" || nodeType === "splitGrid" || nodeType === "outputGallery" || nodeType === "imageCompare") {
+        if (nodeType === "annotation" || nodeType === "output" || nodeType === "splitGrid" || nodeType === "outputGallery" || nodeType === "imageCompare" || nodeType === "removeBackground") {
           targetHandleId = "image";
-          // annotation also has an image output
-          if (nodeType === "annotation") {
+          // annotation and removeBackground also have an image output
+          if (nodeType === "annotation" || nodeType === "removeBackground") {
             sourceHandleIdForNewNode = "image";
           }
         } else if (nodeType === "nanoBanana" || nodeType === "generateVideo") {
@@ -1612,6 +1617,7 @@ export function WorkflowCanvas() {
             easeCurve: { width: 340, height: 480 },
             videoTrim: { width: 360, height: 360 },
             videoFrameGrab: { width: 320, height: 320 },
+            removeBackground: { width: 320, height: 320 },
             router: { width: 200, height: 80 },
             switch: { width: 220, height: 120 },
             conditionalSwitch: { width: 260, height: 180 },
@@ -2226,6 +2232,8 @@ export function WorkflowCanvas() {
                 return "#60a5fa"; // blue-400 (trim/cut)
               case "videoFrameGrab":
                 return "#38bdf8"; // sky-400 (image from video)
+              case "removeBackground":
+                return "#2dd4bf"; // teal-400 (background removal)
               case "router":
                 return "#6b7280"; // neutral-500 (gray/slate utility theme)
               case "switch":

@@ -42,6 +42,7 @@ export type NodeType =
   | "easeCurve"
   | "videoTrim"
   | "videoFrameGrab"
+  | "removeBackground"
   | "router"
   | "switch"
   | "conditionalSwitch"
@@ -413,6 +414,23 @@ export interface VideoFrameGrabNodeData extends BaseNodeData {
 }
 
 /**
+ * Background removal model quality preset (IMG.LY v1.7+)
+ */
+export type BackgroundRemovalModel = "isnet_quint8" | "isnet_fp16" | "isnet";
+
+/**
+ * Remove Background node - removes image backgrounds client-side
+ */
+export interface RemoveBackgroundNodeData extends BaseNodeData {
+  model: BackgroundRemovalModel;
+  outputImage: string | null;
+  outputImageRef?: string;
+  status: NodeStatus;
+  error: string | null;
+  progress: number;
+}
+
+/**
  * Router node - pure passthrough routing node with dynamic multi-type handles
  */
 export interface RouterNodeData extends BaseNodeData {
@@ -517,6 +535,7 @@ export type WorkflowNodeData =
   | EaseCurveNodeData
   | VideoTrimNodeData
   | VideoFrameGrabNodeData
+  | RemoveBackgroundNodeData
   | RouterNodeData
   | SwitchNodeData
   | ConditionalSwitchNodeData

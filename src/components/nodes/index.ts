@@ -18,6 +18,7 @@ export { VideoStitchNode } from "./VideoStitchNode";
 export { EaseCurveNode } from "./EaseCurveNode";
 export { VideoTrimNode } from "./VideoTrimNode";
 export { VideoFrameGrabNode } from "./VideoFrameGrabNode";
+export { RemoveBackgroundNode } from "./RemoveBackgroundNode";
 export { RouterNode } from "./RouterNode";
 export { SwitchNode } from "./SwitchNode";
 export { ConditionalSwitchNode } from "./ConditionalSwitchNode";

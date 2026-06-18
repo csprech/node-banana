@@ -23,6 +23,7 @@ import { executeGenerate3D } from "./generate3dExecutor";
 import { executeLlmGenerate } from "./llmGenerateExecutor";
 import { executeSplitGrid } from "./splitGridExecutor";
 import { executeVideoStitch, executeEaseCurve, executeVideoTrim, executeVideoFrameGrab } from "./videoProcessingExecutors";
+import { executeRemoveBackground } from "./removeBackgroundExecutor";
 import { executeGenerateAudio } from "./generateAudioExecutor";
 
 export interface ExecuteNodeOptions {
@@ -114,6 +115,9 @@ export async function executeNode(
       break;
     case "videoFrameGrab":
       await executeVideoFrameGrab(ctx);
+      break;
+    case "removeBackground":
+      await executeRemoveBackground(ctx);
       break;
   }
 }

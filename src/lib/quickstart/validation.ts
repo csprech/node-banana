@@ -32,6 +32,7 @@ const VALID_NODE_TYPES: NodeType[] = [
   "easeCurve",
   "videoTrim",
   "videoFrameGrab",
+  "removeBackground",
   "router",
   "switch",
   "conditionalSwitch",
@@ -62,6 +63,7 @@ const DEFAULT_DIMENSIONS: Record<NodeType, { width: number; height: number }> = 
   easeCurve: { width: 340, height: 480 },
   videoTrim: { width: 360, height: 360 },
   videoFrameGrab: { width: 320, height: 320 },
+  removeBackground: { width: 320, height: 320 },
   router: { width: 200, height: 80 },
   switch: { width: 220, height: 120 },
   conditionalSwitch: { width: 260, height: 180 },
@@ -404,6 +406,14 @@ function createDefaultNodeData(type: NodeType): WorkflowNodeData {
         outputImage: null,
         status: "idle",
         error: null,
+      };
+    case "removeBackground":
+      return {
+        model: "isnet_fp16",
+        outputImage: null,
+        status: "idle",
+        error: null,
+        progress: 0,
       };
     case "router":
       return {};

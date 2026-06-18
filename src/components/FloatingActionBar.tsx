@@ -46,6 +46,7 @@ const ALL_NODES_CATEGORIES: { label: string; nodes: { type: NodeType; label: str
       { type: "videoTrim", label: "Video Trim" },
       { type: "easeCurve", label: "Ease Curve" },
       { type: "videoFrameGrab", label: "Frame Grab" },
+      { type: "removeBackground", label: "Remove Background" },
       { type: "imageCompare", label: "Image Compare" },
     ],
   },

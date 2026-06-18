@@ -20,6 +20,7 @@ import {
   EaseCurveNodeData,
   VideoTrimNodeData,
   VideoFrameGrabNodeData,
+  RemoveBackgroundNodeData,
   RouterNodeData,
   SwitchNodeData,
   ConditionalSwitchNodeData,
@@ -56,6 +57,7 @@ export const defaultNodeDimensions: Record<NodeType, { width: number; height: nu
   easeCurve: { width: 340, height: 280 },
   videoTrim: { width: 360, height: 360 },
   videoFrameGrab: { width: 320, height: 320 },
+  removeBackground: { width: 320, height: 320 },
   router: { width: 200, height: 80 },
   switch: { width: 220, height: 120 },
   conditionalSwitch: { width: 260, height: 180 },
@@ -306,6 +308,14 @@ export const createDefaultNodeData = (type: NodeType): WorkflowNodeData => {
         status: "idle",
         error: null,
       } as VideoFrameGrabNodeData;
+    case "removeBackground":
+      return {
+        model: "isnet_fp16",
+        outputImage: null,
+        status: "idle",
+        error: null,
+        progress: 0,
+      } as RemoveBackgroundNodeData;
     case "router":
       return {} as RouterNodeData;
     case "switch":

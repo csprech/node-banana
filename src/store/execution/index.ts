@@ -46,4 +46,6 @@ export {
   executeVideoFrameGrab,
 } from "./videoProcessingExecutors";
 
+export { executeRemoveBackground } from "./removeBackgroundExecutor";
+
 export { runBatchIfApplicable } from "./batchExecution";

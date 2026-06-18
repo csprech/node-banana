@@ -20,6 +20,7 @@ import {
   EaseCurveNodeData,
   VideoTrimNodeData,
   VideoFrameGrabNodeData,
+  RemoveBackgroundNodeData,
   PromptNodeData,
   ArrayNodeData,
   PromptConstructorNodeData,
@@ -117,6 +118,8 @@ export function getSourceOutput(
     return { type: "text", value: (sourceNode.data as LLMGenerateNodeData).outputText };
   } else if (sourceNode.type === "videoFrameGrab") {
     return { type: "image", value: (sourceNode.data as VideoFrameGrabNodeData).outputImage };
+  } else if (sourceNode.type === "removeBackground") {
+    return { type: "image", value: (sourceNode.data as RemoveBackgroundNodeData).outputImage };
   } else if (sourceNode.type === "glbViewer") {
     return { type: "image", value: (sourceNode.data as GLBViewerNodeData).capturedImage };
   }
