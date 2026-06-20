@@ -9,7 +9,7 @@ import type { NodeExecutionContext } from "./types";
 import { removeImageBackground } from "@/utils/backgroundRemoval";
 
 export async function executeRemoveBackground(ctx: NodeExecutionContext): Promise<void> {
-  const { node, getConnectedInputs, updateNodeData } = ctx;
+  const { node, getConnectedInputs, updateNodeData, signal } = ctx;
   const nodeData = node.data as RemoveBackgroundNodeData;
 
   updateNodeData(node.id, { status: "loading", error: null, progress: 0 });
@@ -30,9 +30,14 @@ export async function executeRemoveBackground(ctx: NodeExecutionContext): Promis
     const outputImage = await removeImageBackground(sourceImage, {
       model: nodeData.model,
       onProgress: (progress) => {
+        if (signal?.aborted) return;
         updateNodeData(node.id, { progress });
       },
     });
+
+    if (signal?.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
 
     updateNodeData(node.id, {
       outputImage,

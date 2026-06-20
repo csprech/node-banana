@@ -1116,6 +1116,8 @@ export function WorkflowCanvas() {
         return (node.data as { outputImage: string | null }).outputImage;
       case "nanoBanana":
         return (node.data as { outputImage: string | null }).outputImage;
+      case "removeBackground":
+        return (node.data as { outputImage: string | null }).outputImage;
       default:
         return null;
     }

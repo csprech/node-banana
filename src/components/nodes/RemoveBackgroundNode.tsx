@@ -30,6 +30,7 @@ export function RemoveBackgroundNode({ id, data, selected }: NodeProps<RemoveBac
   const adaptiveOutputImage = useAdaptiveImageSrc(nodeData.outputImage, id);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const isRunning = useWorkflowStore((state) => state.isRunning);
+  const getConnectedInputs = useWorkflowStore((state) => state.getConnectedInputs);
   const edges = useWorkflowStore((state) => state.edges);
   const nodes = useWorkflowStore((state) => state.nodes);
   const showLabels = useShowHandleLabels(selected);
@@ -40,13 +41,10 @@ export function RemoveBackgroundNode({ id, data, selected }: NodeProps<RemoveBac
 
   const hasSourceImage = useMemo(() => {
     if (!hasIncomingImageConnection) return false;
-    const sourceEdge = edges.find((edge) => edge.target === id && edge.targetHandle === "image");
-    if (!sourceEdge) return false;
-    const sourceNode = nodes.find((n) => n.id === sourceEdge.source);
-    if (!sourceNode) return false;
-    const d = sourceNode.data as Record<string, unknown>;
-    return Boolean(d.image || d.outputImage || d.capturedImage);
-  }, [hasIncomingImageConnection, edges, nodes, id]);
+    const { images } = getConnectedInputs(id);
+    return images.length > 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasIncomingImageConnection, id, getConnectedInputs, nodes, edges]);
 
   return (
     <BaseNode
