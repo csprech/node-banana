@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
     // - Provided via dynamicInputs
     // - Images are provided (image-to-video/image-to-image models)
     // - Dynamic inputs contain image frames (first_frame, last_frame, etc.)
+    // - Dynamic inputs contain a video (video-to-video upscalers/restorers) or audio
     const hasPrompt = prompt || (dynamicInputs && (
       typeof dynamicInputs.prompt === 'string'
         ? dynamicInputs.prompt
@@ -115,8 +116,11 @@ export async function POST(request: NextRequest) {
     const hasImageInputs = dynamicInputs && Object.keys(dynamicInputs).some(key =>
       key.includes('frame') || key.includes('image')
     );
+    const hasMediaInputs = dynamicInputs && Object.keys(dynamicInputs).some(key =>
+      key.includes('video') || key.includes('audio')
+    );
 
-    if (!hasPrompt && !hasImages && !hasImageInputs) {
+    if (!hasPrompt && !hasImages && !hasImageInputs && !hasMediaInputs) {
       return NextResponse.json<GenerateResponse>(
         {
           success: false,
