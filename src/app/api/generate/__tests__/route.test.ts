@@ -711,7 +711,7 @@ describe("/api/generate route", () => {
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
-      expect(data.error).toBe("Prompt or image input is required");
+      expect(data.error).toBe("Prompt, image, video, or audio input is required");
     });
 
     it("should accept request with only images (image-to-image)", async () => {
@@ -789,6 +789,42 @@ describe("/api/generate route", () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
+    });
+
+    it("should accept request with dynamicInputs containing a video (video-to-video)", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      mockGenerateContent.mockResolvedValueOnce(createGeminiImageResponse());
+
+      const request = createMockPostRequest({
+        dynamicInputs: {
+          video_url: "data:video/mp4;base64,videoData",
+        },
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+
+    it("should reject request whose only media input is an empty value", async () => {
+      process.env.GEMINI_API_KEY = "test-gemini-key";
+
+      const request = createMockPostRequest({
+        dynamicInputs: {
+          video_url: "",
+        },
+        model: "nano-banana-pro",
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
     });
 
     it("should handle multiple images in request", async () => {

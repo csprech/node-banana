@@ -194,11 +194,19 @@ export function getConnectedInputsPure(
     const imageInputs = inputSchema.filter(i => i.type === "image");
     const textInputs = inputSchema.filter(i => i.type === "text");
     const audioInputs = inputSchema.filter(i => i.type === "audio");
+    const videoInputs = inputSchema.filter(i => i.type === "video");
 
     imageInputs.forEach((input, index) => {
       handleToSchemaName[`image-${index}`] = input.name;
       if (index === 0) {
         handleToSchemaName["image"] = input.name;
+      }
+    });
+
+    videoInputs.forEach((input, index) => {
+      handleToSchemaName[`video-${index}`] = input.name;
+      if (index === 0) {
+        handleToSchemaName["video"] = input.name;
       }
     });
 
@@ -420,17 +428,23 @@ export function validateWorkflowPure(
       }
     });
 
-  // Check generateVideo nodes have required text input
+  // Check generateVideo nodes have at least one usable input connected.
+  // A prompt is not always required: video-to-video models (e.g. upscalers)
+  // need only a video input, image-to-video needs an image, etc. This mirrors
+  // the executor, which runs as long as any of text/image/video/audio is present.
   nodes
     .filter((n) => n.type === "generateVideo")
     .forEach((node) => {
-      const textConnected = edges.some(
+      const hasInput = edges.some(
         (e) => e.target === node.id &&
                !e.data?.isLoop &&
-               (e.targetHandle === "text" || e.targetHandle?.startsWith("text-"))
+               (e.targetHandle === "text" || e.targetHandle?.startsWith("text-") ||
+                e.targetHandle === "image" || e.targetHandle?.startsWith("image-") ||
+                e.targetHandle === "video" || e.targetHandle?.startsWith("video-") ||
+                e.targetHandle === "audio" || e.targetHandle?.startsWith("audio-"))
       );
-      if (!textConnected) {
-        errors.push(`Video node "${node.id}" missing text input`);
+      if (!hasInput) {
+        errors.push(`Video node "${node.id}" missing input`);
       }
     });
 

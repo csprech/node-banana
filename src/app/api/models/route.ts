@@ -41,6 +41,10 @@ import {
 // API base URLs
 const REPLICATE_API_BASE = "https://api.replicate.com/v1";
 const FAL_API_BASE = "https://api.fal.ai/v1";
+
+// When the cached catalogue already yields at least this many matches for a
+// search, skip Replicate's (slower) search API — the local results are enough.
+const REPLICATE_SEARCH_MIN_RESULTS = 5;
 const WAVESPEED_API_BASE = "https://api.wavespeed.ai/api/v3";
 
 // Categories we care about for image/video/3D/audio generation (fal.ai)
@@ -704,6 +708,19 @@ function inferReplicateCapabilities(model: ReplicateModel): ModelCapability[] {
     return capabilities;
   }
 
+  // Video-processing models (upscalers, restorers, frame interpolators) often
+  // don't say "video" in their name — gate them on a processing verb paired with
+  // a video signal so they still land under the Video node instead of Image.
+  const hasVideoProcessingSignal =
+    (searchText.includes("upscale") ||
+      searchText.includes("restore") ||
+      searchText.includes("interpolat")) &&
+    (searchText.includes("video") ||
+      searchText.includes("clip") ||
+      searchText.includes("footage") ||
+      searchText.includes("fps") ||
+      searchText.includes("frames"));
+
   // Check for video-related keywords
   const isVideoModel =
     searchText.includes("video") ||
@@ -711,14 +728,17 @@ function inferReplicateCapabilities(model: ReplicateModel): ModelCapability[] {
     searchText.includes("motion") ||
     searchText.includes("luma") ||
     searchText.includes("kling") ||
-    searchText.includes("minimax");
+    searchText.includes("minimax") ||
+    hasVideoProcessingSignal;
 
   if (isVideoModel) {
-    // Video model - determine video capability type
+    // Video model - determine video capability type. Processing models consume a
+    // media (video/frame) input, so treat them as image-to-video rather than text.
     if (
       searchText.includes("img2vid") ||
       searchText.includes("image-to-video") ||
-      searchText.includes("i2v")
+      searchText.includes("i2v") ||
+      hasVideoProcessingSignal
     ) {
       capabilities.push("image-to-video");
     } else {
@@ -785,6 +805,110 @@ async function fetchReplicateModels(apiKey: string): Promise<ProviderModel[]> {
   }
 
   return allModels;
+}
+
+/**
+ * Fetch a single Replicate model by its full "owner/name" id.
+ *
+ * The bulk listing in fetchReplicateModels only covers the first ~15 pages of
+ * Replicate's catalogue, so most models (e.g. topazlabs/video-upscale) never
+ * appear there. This direct lookup is the fallback used when a user searches by
+ * an exact model id. Returns null on a malformed id or any non-OK response
+ * (including 404) so a typo never fails the whole /api/models request.
+ */
+async function fetchReplicateModelById(
+  apiKey: string,
+  modelId: string
+): Promise<ProviderModel | null> {
+  const parts = modelId.split("/");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return null;
+  }
+  const [owner, name] = parts;
+
+  try {
+    const response = await fetch(`${REPLICATE_API_BASE}/models/${owner}/${name}`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const model: ReplicateModel = await response.json();
+    return mapReplicateModel(model);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract valid Replicate models from a search response. Handles both the
+ * /v1/search shape ({ results: [{ model: {...} }] }) and a direct-model shape
+ * ({ results: [{...model}] }), skipping non-model results (collections, docs).
+ */
+function extractReplicateSearchModels(data: unknown): ProviderModel[] {
+  const results = (data as { results?: unknown[] })?.results;
+  if (!Array.isArray(results)) return [];
+
+  const models: ProviderModel[] = [];
+  for (const result of results) {
+    const candidate = ((result as { model?: unknown })?.model ?? result) as {
+      owner?: unknown;
+      name?: unknown;
+    };
+    if (candidate && typeof candidate.owner === "string" && typeof candidate.name === "string") {
+      models.push(mapReplicateModel(candidate as ReplicateModel));
+    }
+  }
+  return models;
+}
+
+/**
+ * Search Replicate's full catalogue server-side for a text query.
+ *
+ * The bulk listing only covers the first ~15 pages, so a fragment search like
+ * "topaz" can't find models outside that window. This hits Replicate's search
+ * so any public model is discoverable by name. Tries the dedicated /v1/search
+ * endpoint first, then falls back to QUERY /v1/models. Always returns an array
+ * (never throws) so a flaky/again-unreliable search can only ADD results, never
+ * break the request — list results and the by-id fallback still apply.
+ */
+async function searchReplicateModels(apiKey: string, query: string): Promise<ProviderModel[]> {
+  // 1) GET /v1/search?query=... (searches models, collections, docs)
+  try {
+    const response = await fetch(
+      `${REPLICATE_API_BASE}/search?query=${encodeURIComponent(query)}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } }
+    );
+    if (response.ok) {
+      const models = extractReplicateSearchModels(await response.json());
+      if (models.length > 0) return models;
+    }
+  } catch {
+    // fall through to the models search
+  }
+
+  // 2) QUERY /v1/models (dedicated model search; plain-text body)
+  try {
+    const response = await fetch(`${REPLICATE_API_BASE}/models`, {
+      method: "QUERY",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "text/plain",
+      },
+      body: query,
+    });
+    if (response.ok) {
+      return extractReplicateSearchModels(await response.json());
+    }
+  } catch {
+    // ignore — search is best-effort
+  }
+
+  return [];
 }
 
 /**
@@ -1279,6 +1403,61 @@ export async function GET(
           error: errorMessage,
         };
         continue;
+      }
+    }
+
+    // Replicate search: the cached catalogue only covers ~15 pages, so a
+    // fragment search (e.g. "topaz") can't find models outside that window.
+    // Search against the cache first and only call Replicate's slower search API
+    // when the local matches are too few — then cache those results per query so
+    // repeat searches stay fast.
+    if (
+      provider === "replicate" &&
+      searchQuery &&
+      models.length < REPLICATE_SEARCH_MIN_RESULTS
+    ) {
+      const searchCacheKey = getCacheKey(provider, searchQuery);
+      let searchModels = refresh ? null : getCachedModels(searchCacheKey);
+      if (!searchModels) {
+        searchModels = await searchReplicateModels(replicateKey!, searchQuery);
+        setCachedModels(searchCacheKey, searchModels);
+      }
+      if (searchModels.length > 0) {
+        const seen = new Set(models.map((m) => m.id.toLowerCase()));
+        const fresh: ProviderModel[] = [];
+        for (const m of searchModels) {
+          const key = m.id.toLowerCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            fresh.push(m);
+          }
+        }
+        if (fresh.length > 0) {
+          models = [...models, ...fresh];
+        }
+      }
+    }
+
+    // Replicate fallback: if the user searched by an exact "owner/name" id that
+    // isn't in the paginated catalogue, resolve it directly so any public model
+    // is reachable (O(1) lookup rather than unbounded extra pagination).
+    if (
+      provider === "replicate" &&
+      searchQuery &&
+      searchQuery.includes("/") &&
+      !models.some((m) => m.id.toLowerCase() === searchQuery.toLowerCase())
+    ) {
+      const byId = await fetchReplicateModelById(replicateKey!, searchQuery);
+      if (byId) {
+        models = [...models, byId];
+        // Warm the cached full list so repeat searches resolve without a refetch.
+        const cachedFull = getCachedModels(cacheKey);
+        if (
+          cachedFull &&
+          !cachedFull.some((m) => m.id.toLowerCase() === byId.id.toLowerCase())
+        ) {
+          setCachedModels(cacheKey, [...cachedFull, byId]);
+        }
       }
     }
 
