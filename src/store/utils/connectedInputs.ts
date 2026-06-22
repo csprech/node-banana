@@ -194,11 +194,19 @@ export function getConnectedInputsPure(
     const imageInputs = inputSchema.filter(i => i.type === "image");
     const textInputs = inputSchema.filter(i => i.type === "text");
     const audioInputs = inputSchema.filter(i => i.type === "audio");
+    const videoInputs = inputSchema.filter(i => i.type === "video");
 
     imageInputs.forEach((input, index) => {
       handleToSchemaName[`image-${index}`] = input.name;
       if (index === 0) {
         handleToSchemaName["image"] = input.name;
+      }
+    });
+
+    videoInputs.forEach((input, index) => {
+      handleToSchemaName[`video-${index}`] = input.name;
+      if (index === 0) {
+        handleToSchemaName["video"] = input.name;
       }
     });
 

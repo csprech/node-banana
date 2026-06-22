@@ -63,6 +63,21 @@ const AUDIO_INPUT_PATTERNS = [
   "audio",
 ];
 
+// Video input property patterns. Deliberately excludes first_frame/last_frame,
+// which are still images and handled by IMAGE_INPUT_PATTERNS.
+const VIDEO_INPUT_PATTERNS = [
+  "video_url",
+  "video_urls",
+  "video",
+  "videos",
+  "input_video",
+  "source_video",
+  "init_video",
+  "reference_video",
+  "driving_video",
+  "control_video",
+];
+
 // Text input properties
 const TEXT_INPUT_NAMES = ["prompt", "negative_prompt"];
 
@@ -236,6 +251,46 @@ function isAudioInput(name: string, prop: Record<string, unknown>, schemaCompone
 
   // Check name patterns
   return name.endsWith("_audio") || name.startsWith("audio_");
+}
+
+/**
+ * Check if property is a video input based on schema type and name.
+ *
+ * Video inputs are strings (URLs or base64) or arrays of strings, like images
+ * and audio. Checked BEFORE isImageInput so video params (e.g. video_url) are
+ * not swallowed by the permissive image URL/uri heuristics.
+ */
+function isVideoInput(name: string, prop: Record<string, unknown>, schemaComponents?: Record<string, unknown>): boolean {
+  const resolved = resolvePropertyType(prop, schemaComponents);
+  const propType = resolved.type;
+  if (propType !== "string" && propType !== "array") {
+    return false;
+  }
+
+  // For arrays, check if items are strings
+  if (propType === "array") {
+    const items = prop.items as Record<string, unknown> | undefined;
+    if (items && items.type && items.type !== "string") {
+      return false;
+    }
+  }
+
+  // Check explicit patterns
+  if (VIDEO_INPUT_PATTERNS.includes(name)) {
+    return true;
+  }
+
+  // Check description for video-related keywords
+  const description = (prop.description as string || "").toLowerCase();
+  if (description.includes("video url") ||
+      description.includes("video file") ||
+      description.includes("url of the video") ||
+      description.includes("input video")) {
+    return true;
+  }
+
+  // Check name patterns
+  return name.endsWith("_video") || name.startsWith("video_");
 }
 
 /**
@@ -588,6 +643,21 @@ function extractParametersFromSchema(
       continue;
     }
 
+    // Video is checked before image: image detection is permissive (URL/uri
+    // description heuristics) and would otherwise swallow video_url-style params.
+    if (isVideoInput(name, prop, schemaComponents)) {
+      const resolvedType = resolvePropertyType(prop, schemaComponents).type;
+      inputs.push({
+        name,
+        type: "video",
+        required: required.includes(name),
+        label: toLabel(name),
+        description: prop.description as string | undefined,
+        isArray: resolvedType === "array",
+      });
+      continue;
+    }
+
     if (isImageInput(name, prop, schemaComponents)) {
       const resolvedType = resolvePropertyType(prop, schemaComponents).type;
       inputs.push({
@@ -629,12 +699,12 @@ function extractParametersFromSchema(
     return a.name.localeCompare(b.name);
   });
 
-  // Sort inputs: required first, then by type (image, audio, text), then alphabetically
-  const inputTypeOrder: Record<string, number> = { image: 0, audio: 1, text: 2 };
+  // Sort inputs: required first, then by type (image, video, audio, text), then alphabetically
+  const inputTypeOrder: Record<string, number> = { image: 0, video: 1, audio: 2, text: 3 };
   inputs.sort((a, b) => {
     if (a.required !== b.required) return a.required ? -1 : 1;
-    const aOrder = inputTypeOrder[a.type] ?? 3;
-    const bOrder = inputTypeOrder[b.type] ?? 3;
+    const aOrder = inputTypeOrder[a.type] ?? 4;
+    const bOrder = inputTypeOrder[b.type] ?? 4;
     if (aOrder !== bOrder) return aOrder - bOrder;
     return a.name.localeCompare(b.name);
   });

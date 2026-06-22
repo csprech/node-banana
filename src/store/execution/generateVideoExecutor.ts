@@ -35,7 +35,7 @@ export async function executeGenerateVideo(
 
   const { useStoredFallback = false } = options;
 
-  const { images: connectedImages, text: connectedText, audio: connectedAudio, dynamicInputs } = getConnectedInputs(node.id);
+  const { images: connectedImages, text: connectedText, audio: connectedAudio, videos: connectedVideos, dynamicInputs } = getConnectedInputs(node.id);
 
   // Get fresh node data from store
   const freshNode = getFreshNode(node.id);
@@ -50,7 +50,8 @@ export async function executeGenerateVideo(
     text = connectedText ?? nodeData.inputPrompt;
     const hasPrompt = text || dynamicInputs.prompt || dynamicInputs.negative_prompt;
     const hasAudio = connectedAudio.length > 0;
-    if (!hasPrompt && images.length === 0 && !hasAudio) {
+    const hasVideo = connectedVideos.length > 0;
+    if (!hasPrompt && images.length === 0 && !hasAudio && !hasVideo) {
       updateNodeData(node.id, {
         status: "error",
         error: "Missing required inputs",
@@ -62,7 +63,8 @@ export async function executeGenerateVideo(
     text = connectedText;
     const hasPrompt = text || dynamicInputs.prompt || dynamicInputs.negative_prompt;
     const hasAudio = connectedAudio.length > 0;
-    if (!hasPrompt && images.length === 0 && !hasAudio) {
+    const hasVideo = connectedVideos.length > 0;
+    if (!hasPrompt && images.length === 0 && !hasAudio && !hasVideo) {
       updateNodeData(node.id, {
         status: "error",
         error: "Missing required inputs",

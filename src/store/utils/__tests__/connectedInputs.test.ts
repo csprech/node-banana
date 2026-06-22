@@ -250,6 +250,25 @@ describe("getConnectedInputsPure", () => {
     expect(result.dynamicInputs).toEqual({ image_url: "data:image/png;base64,a" });
   });
 
+  it("should map a connected video into dynamicInputs and videos via schema", () => {
+    const nodes = [
+      makeNode("vid", "videoInput", { video: "data:video/mp4;base64,v" }),
+      makeNode("gen", "generateVideo", {
+        inputSchema: [{ name: "video_url", type: "video" }],
+      }),
+    ];
+    const edges = [{
+      id: "vid-gen",
+      source: "vid",
+      target: "gen",
+      sourceHandle: "video",
+      targetHandle: "video-0",
+    }] as WorkflowEdge[];
+    const result = getConnectedInputsPure("gen", nodes, edges);
+    expect(result.dynamicInputs).toEqual({ video_url: "data:video/mp4;base64,v" });
+    expect(result.videos).toEqual(["data:video/mp4;base64,v"]);
+  });
+
   it("should extract easeCurve data", () => {
     const nodes = [
       makeNode("ec", "easeCurve", {

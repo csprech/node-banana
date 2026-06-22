@@ -449,18 +449,20 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
         // we still need the image handle to preserve connections made before model selection.
         (() => {
           const imageInputs = nodeData.inputSchema!.filter(i => i.type === "image");
+          const videoInputs = nodeData.inputSchema!.filter(i => i.type === "video");
           const audioInputs = nodeData.inputSchema!.filter(i => i.type === "audio");
           const textInputs = nodeData.inputSchema!.filter(i => i.type === "text");
 
           // Always include at least one image and one text handle for connection stability
           const hasImageInput = imageInputs.length > 0;
+          const hasVideoInput = videoInputs.length > 0;
           const hasAudioInput = audioInputs.length > 0;
           const hasTextInput = textInputs.length > 0;
 
           // Build the handles array: schema inputs + fallback defaults if missing
           const handles: Array<{
             id: string;
-            type: "image" | "text" | "audio";
+            type: "image" | "text" | "audio" | "video";
             label: string;
             schemaName: string | null;
             description: string | null;
@@ -487,6 +489,20 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
               schemaName: null,
               description: "Not used by this model",
               isPlaceholder: true,
+            });
+          }
+
+          // Add video handles from schema (no placeholder — video is not a default input)
+          if (hasVideoInput) {
+            videoInputs.forEach((input, index) => {
+              handles.push({
+                id: `video-${index}`,
+                type: "video",
+                label: input.label,
+                schemaName: input.name,
+                description: input.description || null,
+                isPlaceholder: false,
+              });
             });
           }
 
@@ -527,32 +543,40 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             });
           }
 
-          // Calculate positions: group by type order (image, audio, text) with gaps between groups
-          const imageHandles = handles.filter(h => h.type === "image");
-          const audioHandles = handles.filter(h => h.type === "audio");
-          const textHandles = handles.filter(h => h.type === "text");
-          const groupCount = [imageHandles.length > 0, audioHandles.length > 0, textHandles.length > 0].filter(Boolean).length;
-          const totalSlots = imageHandles.length + audioHandles.length + textHandles.length + (groupCount - 1); // gaps between groups
+          // Calculate positions: group by type order (image, video, audio, text)
+          // with a one-slot gap between adjacent non-empty groups.
+          const orderedGroups = [
+            { type: "image", handles: handles.filter(h => h.type === "image") },
+            { type: "video", handles: handles.filter(h => h.type === "video") },
+            { type: "audio", handles: handles.filter(h => h.type === "audio") },
+            { type: "text", handles: handles.filter(h => h.type === "text") },
+          ].filter(g => g.handles.length > 0);
+
+          const groupCount = orderedGroups.length;
+          const totalSlots =
+            orderedGroups.reduce((sum, g) => sum + g.handles.length, 0) +
+            Math.max(0, groupCount - 1); // gaps between groups
+
+          // Assign each handle a slot index, inserting a gap between groups
+          const slotById = new Map<string, number>();
+          let slotCursor = 0;
+          orderedGroups.forEach((group, groupIndex) => {
+            if (groupIndex > 0) slotCursor += 1; // gap before this group
+            group.handles.forEach((h) => {
+              slotById.set(h.id, slotCursor);
+              slotCursor += 1;
+            });
+          });
 
           const getHandleColor = (type: string) => {
             if (type === "image") return "var(--handle-color-image)";
+            if (type === "video") return "var(--handle-color-video)";
             if (type === "audio") return "var(--handle-color-audio)";
             return "var(--handle-color-text)";
           };
 
           const renderedHandles = handles.map((handle) => {
-            // Calculate position based on type group ordering
-            let adjustedIndex: number;
-            if (handle.type === "image") {
-              adjustedIndex = imageHandles.findIndex(h => h.id === handle.id);
-            } else if (handle.type === "audio") {
-              const gapAfterImages = imageHandles.length > 0 ? 1 : 0;
-              adjustedIndex = imageHandles.length + gapAfterImages + audioHandles.findIndex(h => h.id === handle.id);
-            } else {
-              const gapAfterImages = imageHandles.length > 0 && (audioHandles.length > 0 || textHandles.length > 0) ? 1 : 0;
-              const gapAfterAudio = audioHandles.length > 0 && textHandles.length > 0 ? 1 : 0;
-              adjustedIndex = imageHandles.length + gapAfterImages + audioHandles.length + gapAfterAudio + textHandles.findIndex(h => h.id === handle.id);
-            }
+            const adjustedIndex = slotById.get(handle.id) ?? 0;
             const topPercent = ((adjustedIndex + 1) / (totalSlots + 1)) * 100;
 
             return (
@@ -587,6 +611,15 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
                   position={Position.Left}
                   id="image"
                   style={{ top: "35%", opacity: 0, pointerEvents: "none" }}
+                  isConnectable={false}
+                />
+              )}
+              {hasVideoInput && (
+                <Handle
+                  type="target"
+                  position={Position.Left}
+                  id="video"
+                  style={{ top: "42%", opacity: 0, pointerEvents: "none" }}
                   isConnectable={false}
                 />
               )}

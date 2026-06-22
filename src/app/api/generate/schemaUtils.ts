@@ -17,6 +17,12 @@ export const INPUT_PATTERNS: Record<string, string[]> = {
   image: ["image_url", "image_urls", "image", "first_frame", "start_image", "init_image",
           "reference_image", "input_image", "image_input", "source_image", "img", "photo"],
 
+  // Video inputs (e.g. video-to-video upscalers/restorers). The connected video
+  // normally travels via dynamicInputs under its exact schema name; this is a
+  // defensive mapping for the non-dynamic fallback path.
+  videoInput: ["video_url", "video_urls", "video", "input_video", "source_video",
+               "init_video", "reference_video", "driving_video", "control_video"],
+
   // Video/media settings
   aspectRatio: ["aspect_ratio", "ratio", "size", "dimensions", "output_size"],
   duration: ["duration", "length", "num_frames", "seconds", "video_length"],
