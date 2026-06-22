@@ -354,11 +354,28 @@ describe("validateWorkflowPure", () => {
     expect(result.errors[0]).toContain("missing text input");
   });
 
-  it("should detect missing text input on generateVideo", () => {
+  it("should detect missing input on generateVideo when nothing is connected", () => {
     const nodes = [makeNode("vid", "generateVideo")];
     const result = validateWorkflowPure(nodes, []);
     expect(result.valid).toBe(false);
-    expect(result.errors[0]).toContain("missing text input");
+    expect(result.errors[0]).toContain("missing input");
+  });
+
+  it("should pass generateVideo with only a video input connected (no prompt required)", () => {
+    const nodes = [
+      makeNode("src", "videoInput", { video: "data:video/mp4;base64,v" }),
+      makeNode("vid", "generateVideo"),
+    ];
+    const edges = [{
+      id: "src-vid",
+      source: "src",
+      target: "vid",
+      sourceHandle: "video",
+      targetHandle: "video-0",
+    }] as WorkflowEdge[];
+    const result = validateWorkflowPure(nodes, edges);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
   });
 
   it("should detect missing image input on annotation without manual image", () => {

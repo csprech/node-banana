@@ -428,17 +428,23 @@ export function validateWorkflowPure(
       }
     });
 
-  // Check generateVideo nodes have required text input
+  // Check generateVideo nodes have at least one usable input connected.
+  // A prompt is not always required: video-to-video models (e.g. upscalers)
+  // need only a video input, image-to-video needs an image, etc. This mirrors
+  // the executor, which runs as long as any of text/image/video/audio is present.
   nodes
     .filter((n) => n.type === "generateVideo")
     .forEach((node) => {
-      const textConnected = edges.some(
+      const hasInput = edges.some(
         (e) => e.target === node.id &&
                !e.data?.isLoop &&
-               (e.targetHandle === "text" || e.targetHandle?.startsWith("text-"))
+               (e.targetHandle === "text" || e.targetHandle?.startsWith("text-") ||
+                e.targetHandle === "image" || e.targetHandle?.startsWith("image-") ||
+                e.targetHandle === "video" || e.targetHandle?.startsWith("video-") ||
+                e.targetHandle === "audio" || e.targetHandle?.startsWith("audio-"))
       );
-      if (!textConnected) {
-        errors.push(`Video node "${node.id}" missing text input`);
+      if (!hasInput) {
+        errors.push(`Video node "${node.id}" missing input`);
       }
     });
 

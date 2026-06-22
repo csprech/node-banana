@@ -492,7 +492,8 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             });
           }
 
-          // Add video handles from schema (no placeholder — video is not a default input)
+          // Add video handles from schema, or a placeholder if none exist, so a
+          // video source can always be attached (e.g. before model selection).
           if (hasVideoInput) {
             videoInputs.forEach((input, index) => {
               handles.push({
@@ -503,6 +504,15 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
                 description: input.description || null,
                 isPlaceholder: false,
               });
+            });
+          } else {
+            handles.push({
+              id: "video",
+              type: "video",
+              label: "Video",
+              schemaName: null,
+              description: "Not used by this model",
+              isPlaceholder: true,
             });
           }
 
@@ -657,6 +667,16 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
           />
           {/* Default image label */}
           <HandleLabel label="Image" side="target" color="var(--handle-color-image)" top="calc(35% - 18px)" visible={showLabels} />
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="video"
+            style={{ top: "50%", zIndex: 10 }}
+            data-handletype="video"
+            isConnectable={true}
+          />
+          {/* Default video label */}
+          <HandleLabel label="Video" side="target" color="var(--handle-color-video)" top="calc(50% - 18px)" visible={showLabels} />
           <Handle
             type="target"
             position={Position.Left}
