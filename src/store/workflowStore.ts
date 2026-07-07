@@ -31,6 +31,7 @@ import { useToast } from "@/components/Toast";
 import { logger } from "@/utils/logger";
 import { externalizeWorkflowMedia, hydrateWorkflowMedia } from "@/utils/mediaStorage";
 import { buildShareableWorkflow } from "@/utils/shareableWorkflow";
+import type { WorkflowVersion } from "@/app/api/workflow/versions/route";
 import { EditOperation, applyEditOperations as executeEditOps } from "@/lib/chat/editOperations";
 import { findNearestFreePosition } from "@/utils/spatialLayout";
 import {
@@ -318,6 +319,8 @@ interface WorkflowStore {
   saveToFile: () => Promise<boolean>;
   saveAsFile: (name: string) => Promise<boolean>;
   getShareableWorkflow: () => WorkflowFile;
+  listWorkflowVersions: () => Promise<WorkflowVersion[]>;
+  restoreWorkflowVersion: (versionId: string) => Promise<boolean>;
   initializeAutoSave: () => void;
   cleanupAutoSave: () => void;
 
@@ -2595,6 +2598,41 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
       edgeStyle,
       groups,
     });
+  },
+
+  listWorkflowVersions: async () => {
+    const { saveDirectoryPath, workflowName } = get();
+    if (!saveDirectoryPath || !workflowName) return [];
+    try {
+      const res = await fetch(
+        `/api/workflow/versions?directoryPath=${encodeURIComponent(saveDirectoryPath)}&filename=${encodeURIComponent(workflowName)}`
+      );
+      const data = await res.json();
+      return data.success ? (data.versions as WorkflowVersion[]) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  restoreWorkflowVersion: async (versionId: string) => {
+    const { saveDirectoryPath, workflowName } = get();
+    if (!saveDirectoryPath || !workflowName) return false;
+    try {
+      const res = await fetch("/api/workflow/versions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directoryPath: saveDirectoryPath, filename: workflowName, versionId }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.workflow) return false;
+      // Load the snapshot; leave it dirty so the user's next save snapshots the
+      // current state first (restore is non-destructive).
+      await get().loadWorkflow(data.workflow as WorkflowFile, saveDirectoryPath);
+      get().markAsUnsaved();
+      return true;
+    } catch {
+      return false;
+    }
   },
 
   initializeAutoSave: () => {

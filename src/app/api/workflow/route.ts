@@ -6,6 +6,48 @@ import { validateWorkflowPath } from "@/utils/pathValidation";
 
 export const maxDuration = 300; // 5 minute timeout for large workflow files
 
+export const VERSIONS_DIR = ".versions";
+const MAX_VERSIONS = 10;
+
+/**
+ * Before overwriting a workflow file, copy its current contents into
+ * `<dir>/.versions/<name>/<epochMs>.json` and prune to the newest MAX_VERSIONS.
+ * Best-effort: versioning must never block or fail a save.
+ */
+async function snapshotPreviousVersion(
+  directoryPath: string,
+  safeName: string,
+  timestamp: number
+): Promise<void> {
+  const currentPath = path.join(directoryPath, `${safeName}.json`);
+  let previous: string;
+  try {
+    previous = await fs.readFile(currentPath, "utf-8");
+  } catch {
+    return; // no existing file → nothing to snapshot (first save)
+  }
+
+  const versionsFolder = path.join(directoryPath, VERSIONS_DIR, safeName);
+  try {
+    await fs.mkdir(versionsFolder, { recursive: true });
+    await fs.writeFile(path.join(versionsFolder, `${timestamp}.json`), previous, "utf-8");
+
+    // Prune oldest beyond MAX_VERSIONS (filenames are epoch ms → lexicographic sort ~ chronological)
+    const files = (await fs.readdir(versionsFolder))
+      .filter((f) => f.endsWith(".json"))
+      .sort();
+    const excess = files.length - MAX_VERSIONS;
+    for (let i = 0; i < excess; i++) {
+      await fs.unlink(path.join(versionsFolder, files[i])).catch(() => {});
+    }
+  } catch (error) {
+    logger.warn("file.save", "Failed to snapshot workflow version (non-fatal)", {
+      versionsFolder,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}
+
 // POST: Save workflow to file
 export async function POST(request: NextRequest) {
   let directoryPath: string | undefined;
@@ -112,6 +154,9 @@ export async function POST(request: NextRequest) {
     // Sanitize filename (remove special chars, ensure .json extension)
     const safeName = filename.replace(/[^a-zA-Z0-9-_]/g, "_");
     const filePath = path.join(directoryPath, `${safeName}.json`);
+
+    // Snapshot the outgoing version before overwriting (best-effort)
+    await snapshotPreviousVersion(directoryPath, safeName, Date.now());
 
     // Write workflow JSON
     const json = JSON.stringify(workflow, null, 2);

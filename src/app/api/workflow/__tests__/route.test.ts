@@ -5,11 +5,17 @@ import { NextRequest } from "next/server";
 const mockStat = vi.fn();
 const mockMkdir = vi.fn();
 const mockWriteFile = vi.fn();
+const mockReadFile = vi.fn();
+const mockReaddir = vi.fn();
+const mockUnlink = vi.fn();
 
 vi.mock("fs/promises", () => ({
   stat: (...args: unknown[]) => mockStat(...args),
   mkdir: (...args: unknown[]) => mockMkdir(...args),
   writeFile: (...args: unknown[]) => mockWriteFile(...args),
+  readFile: (...args: unknown[]) => mockReadFile(...args),
+  readdir: (...args: unknown[]) => mockReaddir(...args),
+  unlink: (...args: unknown[]) => mockUnlink(...args),
 }));
 
 // Mock logger to avoid console noise during tests
@@ -42,6 +48,8 @@ function createMockGetRequest(params: Record<string, string>): NextRequest {
 describe("/api/workflow route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: no existing file, so version-snapshotting cleanly skips
+    mockReadFile.mockRejectedValue(new Error("ENOENT"));
   });
 
   afterEach(() => {
@@ -77,6 +85,58 @@ describe("/api/workflow route", () => {
         JSON.stringify(mockWorkflow, null, 2),
         "utf-8"
       );
+    });
+
+    it("should snapshot the previous file into .versions before overwriting", async () => {
+      const mockWorkflow = { nodes: [], edges: [] };
+      mockStat.mockResolvedValue({ isDirectory: () => true });
+      mockMkdir.mockResolvedValue(undefined);
+      mockWriteFile.mockResolvedValue(undefined);
+      // An existing file is present → its contents get snapshotted
+      mockReadFile.mockResolvedValue('{"old":"content"}');
+      mockReaddir.mockResolvedValue([]);
+
+      const request = createMockPostRequest({
+        directoryPath: "/test/dir",
+        filename: "my-workflow",
+        workflow: mockWorkflow,
+      });
+
+      const response = await POST(request);
+      expect((await response.json()).success).toBe(true);
+
+      // A version snapshot was written under .versions/my-workflow/<epoch>.json
+      const snapshotWrite = mockWriteFile.mock.calls.find(
+        (call) =>
+          typeof call[0] === "string" &&
+          call[0].includes("/.versions/my-workflow/") &&
+          call[1] === '{"old":"content"}'
+      );
+      expect(snapshotWrite).toBeDefined();
+    });
+
+    it("should prune versions beyond the last 10", async () => {
+      const mockWorkflow = { nodes: [], edges: [] };
+      mockStat.mockResolvedValue({ isDirectory: () => true });
+      mockMkdir.mockResolvedValue(undefined);
+      mockWriteFile.mockResolvedValue(undefined);
+      mockReadFile.mockResolvedValue("prev");
+      // 11 existing snapshots → after adding one, the oldest should be unlinked
+      mockReaddir.mockResolvedValue(
+        Array.from({ length: 11 }, (_, i) => `${1000 + i}.json`)
+      );
+      mockUnlink.mockResolvedValue(undefined);
+
+      await POST(
+        createMockPostRequest({
+          directoryPath: "/test/dir",
+          filename: "wf",
+          workflow: mockWorkflow,
+        })
+      );
+
+      expect(mockUnlink).toHaveBeenCalledTimes(1);
+      expect(mockUnlink).toHaveBeenCalledWith(expect.stringContaining("1000.json"));
     });
 
     it("should sanitize filename with special characters", async () => {

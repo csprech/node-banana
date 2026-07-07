@@ -8,6 +8,7 @@ import { CostIndicator } from "./CostIndicator";
 import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 import { WorkflowBrowserModal } from "./WorkflowBrowserModal";
 import { shareableFilename } from "@/utils/shareableWorkflow";
+import { WorkflowVersionHistory } from "./WorkflowVersionHistory";
 
 function CommentsNavigationIcon() {
   // Subscribe to nodes so we re-render when comments change
@@ -334,6 +335,7 @@ export function Header() {
                       />
                     </svg>
                   </button>
+                  <WorkflowVersionHistory />
                 </div>
 
                 {settingsButtons}
@@ -403,6 +405,7 @@ export function Header() {
                       />
                     </svg>
                   </button>
+                  <WorkflowVersionHistory />
                 </div>
 
                 {settingsButtons}
