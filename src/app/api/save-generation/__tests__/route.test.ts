@@ -527,6 +527,42 @@ describe("/api/save-generation route", () => {
   });
 });
 
+describe("POST - directory path validation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should reject a relative directoryPath", async () => {
+    const request = createMockPostRequest({
+      directoryPath: "generations",
+      image: createBase64DataUrl("x"),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(mockWriteFile).not.toHaveBeenCalled();
+  });
+
+  it("should reject a directoryPath in a blocked system directory", async () => {
+    const request = createMockPostRequest({
+      directoryPath: "/etc/cron.d",
+      image: createBase64DataUrl("x"),
+      createDirectory: true,
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(mockMkdir).not.toHaveBeenCalled();
+    expect(mockWriteFile).not.toHaveBeenCalled();
+  });
+});
+
 describe("getExtensionFromUrl", () => {
   it("should extract .glb from a CDN URL", () => {
     expect(getExtensionFromUrl("https://cdn.example.com/model.glb")).toBe("glb");

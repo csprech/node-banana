@@ -3,6 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as crypto from "crypto";
 import { logger } from "@/utils/logger";
+import { validateWorkflowPath } from "@/utils/pathValidation";
 
 export const maxDuration = 300; // 5 minute timeout for large media operations
 
@@ -136,6 +137,18 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const pathValidation = validateWorkflowPath(directoryPath);
+    if (!pathValidation.valid) {
+      logger.warn('file.error', 'Generation save failed: invalid directory path', {
+        directoryPath,
+        error: pathValidation.error,
+      });
+      return NextResponse.json(
+        { success: false, error: pathValidation.error || "Invalid directory path" },
         { status: 400 }
       );
     }

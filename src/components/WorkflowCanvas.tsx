@@ -73,7 +73,8 @@ import { PromptConstructorEditorModal } from "./modals/PromptConstructorEditorMo
 import { resolveTextSourcesThroughRouters } from "@/store/utils/connectedInputs";
 import { wouldCreateCycle } from "@/store/utils/executionUtils";
 import { parseVarTags } from "@/utils/parseVarTags";
-import { AnnotationModal } from "./AnnotationModal";
+// Lazy-load AnnotationModal to keep konva/react-konva out of the initial bundle
+const AnnotationModal = dynamic(() => import("./AnnotationModal").then(mod => ({ default: mod.AnnotationModal })), { ssr: false });
 import { ModelSearchDialog } from "./modals/ModelSearchDialog";
 import { LLMFallbackPopover } from "./nodes/LLMFallbackPopover";
 import { browseRegistry } from "@/utils/browseRegistry";
@@ -320,6 +321,7 @@ export function WorkflowCanvas() {
   const clearWorkflow = useWorkflowStore((state) => state.clearWorkflow);
   const setHoveredNodeId = useWorkflowStore((state) => state.setHoveredNodeId);
   const openAnnotationModal = useAnnotationStore((state) => state.openModal);
+  const isAnnotationModalOpen = useAnnotationStore((state) => state.isModalOpen);
   const { screenToFlowPosition, getViewport, zoomIn, zoomOut, setViewport, setCenter } = useReactFlow();
   const { show: showToast } = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
@@ -2524,8 +2526,9 @@ export function WorkflowCanvas() {
         />
       )}
 
-      {/* AnnotationModal is globally managed by annotationStore */}
-      <AnnotationModal />
+      {/* AnnotationModal is globally managed by annotationStore.
+          Conditionally mounted so the konva chunk only downloads on first open. */}
+      {isAnnotationModalOpen && <AnnotationModal />}
 
       {/* Tutorial overlay */}
       <TutorialOverlay />

@@ -5,7 +5,6 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { Header } from "@/components/Header";
 import { WorkflowCanvas } from "@/components/WorkflowCanvas";
 import { FloatingActionBar } from "@/components/FloatingActionBar";
-import { AnnotationModal } from "@/components/AnnotationModal";
 import { useWorkflowStore } from "@/store/workflowStore";
 import { FTUXModal } from "@/components/onboarding/FTUXModal";
 import { getFTUXCompleted, setFTUXCompleted } from "@/store/utils/localStorage";
@@ -59,7 +58,6 @@ export default function Home() {
         <Header />
         <WorkflowCanvas />
         <FloatingActionBar />
-        <AnnotationModal />
         {showFTUX && (
           <FTUXModal
             onComplete={handleFTUXComplete}
