@@ -30,6 +30,7 @@ import { UndoManager, UndoSnapshot, clonePreservingStrings } from "./undoHistory
 import { useToast } from "@/components/Toast";
 import { logger } from "@/utils/logger";
 import { externalizeWorkflowMedia, hydrateWorkflowMedia } from "@/utils/mediaStorage";
+import { buildShareableWorkflow } from "@/utils/shareableWorkflow";
 import { EditOperation, applyEditOperations as executeEditOps } from "@/lib/chat/editOperations";
 import { findNearestFreePosition } from "@/utils/spatialLayout";
 import {
@@ -316,6 +317,7 @@ interface WorkflowStore {
   markAsUnsaved: () => void;
   saveToFile: () => Promise<boolean>;
   saveAsFile: (name: string) => Promise<boolean>;
+  getShareableWorkflow: () => WorkflowFile;
   initializeAutoSave: () => void;
   cleanupAutoSave: () => void;
 
@@ -2582,6 +2584,17 @@ const workflowStoreImpl: StateCreator<WorkflowStore> = (set, get) => ({
       set({ workflowId: prevId, workflowName: prevName, hasUnsavedChanges: prevUnsaved });
     }
     return success;
+  },
+
+  getShareableWorkflow: () => {
+    const { nodes, edges, edgeStyle, groups, workflowName } = get();
+    return buildShareableWorkflow({
+      name: workflowName || "Shared Workflow",
+      nodes,
+      edges,
+      edgeStyle,
+      groups,
+    });
   },
 
   initializeAutoSave: () => {

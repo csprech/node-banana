@@ -7,6 +7,7 @@ import { ProjectSetupModal } from "./ProjectSetupModal";
 import { CostIndicator } from "./CostIndicator";
 import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 import { WorkflowBrowserModal } from "./WorkflowBrowserModal";
+import { shareableFilename } from "@/utils/shareableWorkflow";
 
 function CommentsNavigationIcon() {
   // Subscribe to nodes so we re-render when comments change
@@ -70,6 +71,7 @@ export function Header() {
     setWorkflowMetadata,
     saveToFile,
     loadWorkflow,
+    getShareableWorkflow,
     previousWorkflowSnapshot,
     revertToSnapshot,
     shortcutsDialogOpen,
@@ -85,6 +87,7 @@ export function Header() {
     setWorkflowMetadata: state.setWorkflowMetadata,
     saveToFile: state.saveToFile,
     loadWorkflow: state.loadWorkflow,
+    getShareableWorkflow: state.getShareableWorkflow,
     previousWorkflowSnapshot: state.previousWorkflowSnapshot,
     revertToSnapshot: state.revertToSnapshot,
     shortcutsDialogOpen: state.shortcutsDialogOpen,
@@ -118,6 +121,20 @@ export function Header() {
 
   const handleOpenFile = () => {
     setShowWorkflowBrowser(true);
+  };
+
+  const handleExportShareable = () => {
+    const workflow = getShareableWorkflow();
+    const json = JSON.stringify(workflow, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${shareableFilename(workflow.name)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleProjectSave = async (id: string, name: string, path: string) => {
@@ -298,6 +315,25 @@ export function Header() {
                       />
                     </svg>
                   </button>
+                  <button
+                    onClick={handleExportShareable}
+                    className="p-1.5 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 rounded transition-colors"
+                    title="Export shareable copy (self-contained .json)"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
+                      />
+                    </svg>
+                  </button>
                 </div>
 
                 {settingsButtons}
@@ -345,6 +381,25 @@ export function Header() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleExportShareable}
+                    className="p-1.5 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 rounded transition-colors"
+                    title="Export shareable copy (self-contained .json)"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
                       />
                     </svg>
                   </button>
