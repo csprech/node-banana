@@ -1,18 +1,66 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas-bg: #171717;
+  --color-canvas-bg: #16161c;
+
+  /* iris neutral ramp — Apple-dark grays carrying a faint cool violet bias,
+     luminance-matched to the defaults so contrast is preserved. Redefining the
+     palette tokens reskins every neutral utility across the app at once. */
+  --color-neutral-100: #f1f1f6;
+  --color-neutral-200: #e2e2ea;
+  --color-neutral-300: #cfcfd9;
+  --color-neutral-400: #9d9daa;
+  --color-neutral-500: #6e6e7b;
+  --color-neutral-600: #4d4d59;
+  --color-neutral-700: #3a3a45;
+  --color-neutral-800: #24242c;
+  --color-neutral-900: #16161c;
+  --color-neutral-950: #0b0b10;
+
+  /* iris accent — the spectrum's blue-violet, still legible as "blue" */
+  --color-blue-100: #e6ecff;
+  --color-blue-200: #cbd8ff;
+  --color-blue-300: #a3bbff;
+  --color-blue-400: #6f9bff;
+  --color-blue-500: #4a86f7;
+  --color-blue-600: #3a6fe6;
+  --color-blue-700: #2f57c9;
+  --color-blue-900: #24306e;
 }
 
 :root {
-  --background: #0a0a0a;
+  --background: #0b0b10;
   --foreground: #fafafa;
-  /* Handle colors (used by labels) */
-  --handle-color-image: #10b981;
-  --handle-color-text: #3b82f6;
-  --handle-color-3d: #f97316;
-  --handle-color-audio: #a855f7;
-  --handle-color-video: #ec4899;
+  /* iris spectrum stops (violet → rose) */
+  --iris-s1: #7b6cf6;
+  --iris-s2: #4a86f7;
+  --iris-s3: #35c9e6;
+  --iris-s4: #35d39a;
+  --iris-s5: #f4c14e;
+  --iris-s6: #f77a8e;
+  /* Handle colors mapped onto the spectrum (used by labels) */
+  --handle-color-image: #35d39a;
+  --handle-color-text: #4a86f7;
+  --handle-color-3d: #f6a445;
+  --handle-color-audio: #7b6cf6;
+  --handle-color-video: #f77a8e;
+}
+
+/* iris signature: the spectral primary action — creation happens here.
+   The one bold, saturated moment in an otherwise quiet, precise interface. */
+.iris-run {
+  background: linear-gradient(105deg, var(--iris-s1), var(--iris-s2), var(--iris-s3), var(--iris-s4), var(--iris-s5), var(--iris-s6));
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 14px rgba(74, 134, 247, 0.28);
+  transition: filter 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.iris-run:hover {
+  filter: brightness(1.06) saturate(1.06);
+  box-shadow: 0 3px 18px rgba(123, 108, 246, 0.42);
+}
+@media (prefers-reduced-motion: reduce) {
+  .iris-run { transition: none; }
 }
 
 html {
@@ -110,33 +158,29 @@ body {
   right: -7px;
 }
 
-/* Image handles - soft green */
+/* Handle colors — mapped onto the iris spectrum */
 .react-flow__handle[data-handletype="image"] {
-  background: #10b981;
+  background: var(--handle-color-image);
 }
 
-/* Text handles - soft blue */
 .react-flow__handle[data-handletype="text"] {
-  background: #3b82f6;
+  background: var(--handle-color-text);
 }
 
-/* Audio handles - purple */
 .react-flow__handle[data-handletype="audio"] {
-  background: #a855f7;
+  background: var(--handle-color-audio);
 }
 
-/* Video handles - pink */
 .react-flow__handle[data-handletype="video"] {
-  background: #ec4899;
+  background: var(--handle-color-video);
 }
 
-/* 3D handles - orange */
 .react-flow__handle[data-handletype="3d"] {
-  background: #f97316;
+  background: var(--handle-color-3d);
 }
 
 .react-flow__edge-path {
-  stroke: #94a3b8;
+  stroke: #7c7c8b;
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -144,7 +188,7 @@ body {
 
 .react-flow__edge.selected .react-flow__edge-path,
 .react-flow__edge:hover .react-flow__edge-path {
-  stroke: #3b82f6;
+  stroke: var(--iris-s2);
 }
 
 /* Hide resize handles but show resize cursor on edges */

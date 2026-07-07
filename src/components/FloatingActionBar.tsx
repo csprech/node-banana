@@ -531,7 +531,7 @@ export function FloatingActionBar() {
               isRunning
                 ? "bg-white text-neutral-900 hover:bg-neutral-200 rounded"
                 : valid
-                ? "bg-white text-neutral-900 hover:bg-neutral-200 rounded-l"
+                ? "iris-run rounded-l"
                 : "bg-neutral-700 text-neutral-500 cursor-not-allowed rounded"
             }`}
           >
