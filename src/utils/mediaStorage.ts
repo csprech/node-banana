@@ -1,6 +1,5 @@
 import { WorkflowNode, WorkflowNodeData } from "@/types";
 import { WorkflowFile } from "@/store/workflowStore";
-import crypto from "crypto";
 
 /**
  * Fetch with timeout support using AbortController
@@ -35,11 +34,18 @@ async function fetchWithTimeout(
 }
 
 /**
- * Compute MD5 hash of content for deduplication
- * Consistent with save-generation API
+ * Compute a content hash for deduplication.
+ * Uses Web Crypto (async, off-main-thread) instead of a Node crypto polyfill —
+ * this hash is only a local dedup key, never compared against server-side hashes.
  */
-function computeContentHash(data: string): string {
-  return crypto.createHash("md5").update(data).digest("hex");
+async function computeContentHash(data: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(data)
+  );
+  return Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, "0")
+  ).join("");
 }
 
 /**
@@ -618,9 +624,8 @@ async function saveImageAndGetId(
   folder: "inputs" | "generations" = "inputs",
   existingId?: string
 ): Promise<string> {
-  // Use MD5 hash for reliable deduplication (consistent with save-generation API, Phase 13 decision)
   // Include folder in hash so same image in different folders gets different IDs
-  const hash = `${folder}-${computeContentHash(imageData)}`;
+  const hash = `${folder}-${await computeContentHash(imageData)}`;
 
   // Skip deduplication if an explicit ID is requested - we must use that exact ID
   // to maintain consistency with imageHistory. Otherwise, deduplicate by content.
@@ -689,7 +694,7 @@ async function saveVideoAndGetRef(
     return null;
   }
 
-  const hash = `video-${computeContentHash(videoData)}`;
+  const hash = `video-${await computeContentHash(videoData)}`;
 
   // Skip deduplication if an explicit ID is requested
   if (!existingId && savedMediaIds.has(hash)) {
@@ -757,7 +762,7 @@ async function saveAudioAndGetRef(
     return null;
   }
 
-  const hash = `audio-${computeContentHash(audioData)}`;
+  const hash = `audio-${await computeContentHash(audioData)}`;
 
   // Skip deduplication if an explicit ID is requested
   if (!existingId && savedMediaIds.has(hash)) {
