@@ -1,19 +1,20 @@
 /**
  * Generate API Route
- * 
- * TIMEOUT CONFIGURATION:
- * - maxDuration: Only applies on Vercel, not locally
- * - AbortSignal.timeout: Controls outgoing fetch to providers
- * - For local development, server.requestTimeout must be set in server.js (Node.js default is 5 minutes)
- * 
- * FAL.AI QUEUE API NOTE:
- * Uses generateWithFalQueue with async queue submission + polling.
- * Images are uploaded to fal CDN before submission to avoid payload size issues.
+ *
+ * ASYNC MODEL:
+ * All long-running providers (Kie, fal, Replicate, WaveSpeed, Gemini/Veo
+ * video) submit a task here and return { polling: true, taskId } immediately;
+ * the client drives /api/generate/poll with short-lived requests. Only the
+ * synchronous Gemini image path still completes inline. Because no request
+ * holds a connection open for the whole generation, the standard Next server
+ * suffices (the old custom server.js timeout shim was removed).
+ *
+ * maxDuration below only applies on Vercel; locally the Node default governs.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { GenerateRequest, GenerateResponse, ModelType, SelectedModel, ProviderType } from "@/types";
 import { GenerationInput, ModelCapability } from "@/lib/providers/types";
-import { generateWithGemini, generateWithGeminiVideo } from "./providers/gemini";
+import { generateWithGemini, submitGeminiVideoTask } from "./providers/gemini";
 import { submitReplicateTask } from "./providers/replicate";
 import { clearFalInputMappingCache as _clearFalInputMappingCache, submitFalTask } from "./providers/fal";
 import { submitKieTask } from "./providers/kie";
@@ -22,7 +23,7 @@ import { submitWaveSpeedTask } from "./providers/wavespeed";
 // Re-export for backward compatibility (test file imports from route)
 export const clearFalInputMappingCache = _clearFalInputMappingCache;
 
-export const maxDuration = 600; // 10 minute timeout for video generation polling
+export const maxDuration = 300; // 5 min ceiling for the synchronous Gemini image path; async providers return immediately
 export const dynamic = 'force-dynamic'; // Ensure this route is always dynamic
 
 
@@ -494,31 +495,31 @@ export async function POST(request: NextRequest) {
           : dynamicInputs.negative_prompt;
         if (neg) veoParams.negativePrompt = neg;
       }
-      const result = await generateWithGeminiVideo(
-        requestId,
-        geminiApiKey,
-        selectedModel.modelId,
-        resolvedPrompt || "",
-        images || [],
-        veoParams,
-      );
-
-      if (!result.success) {
+      // Submit and return immediately — client polls for completion
+      try {
+        const { taskId } = await submitGeminiVideoTask(
+          requestId,
+          geminiApiKey,
+          selectedModel.modelId,
+          resolvedPrompt || "",
+          images || [],
+          veoParams,
+        );
+        return NextResponse.json<GenerateResponse>({
+          success: true,
+          polling: true,
+          taskId,
+          pollProvider: 'gemini-video',
+          pollModelId: selectedModel.modelId,
+          pollModelName: selectedModel.displayName || selectedModel.modelId,
+          pollMediaType: 'video',
+        });
+      } catch (error) {
         return NextResponse.json<GenerateResponse>(
-          { success: false, error: result.error || "Video generation failed" },
+          { success: false, error: error instanceof Error ? error.message : "Video generation failed" },
           { status: 500 }
         );
       }
-
-      const output = result.outputs?.[0];
-      if (!output?.data && !output?.url) {
-        return NextResponse.json<GenerateResponse>(
-          { success: false, error: "No output in video generation result" },
-          { status: 500 }
-        );
-      }
-
-      return buildMediaResponse(output);
     }
 
     return await generateWithGemini(

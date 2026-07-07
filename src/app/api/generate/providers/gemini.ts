@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { GenerateResponse, ModelType } from "@/types";
 import { GenerationOutput } from "@/lib/providers/types";
+import { TaskCheckResult } from "./taskPolling";
 
 /**
  * Map model types to Gemini model IDs
@@ -202,19 +203,23 @@ const VEO_MODEL_MAP: Record<string, string> = {
 };
 
 /**
- * Generate video using Gemini API (Veo models)
+ * Submit a Veo video generation and return the long-running operation name.
+ * The client polls /api/generate/poll which calls checkGeminiVideoTaskOnce;
+ * that resumes the operation from its name (the SDK polls by name only), so
+ * no HTTP connection is held open server-side during generation.
+ * Throws on submission failure.
  */
-export async function generateWithGeminiVideo(
+export async function submitGeminiVideoTask(
   requestId: string,
   apiKey: string,
   modelId: string,
   prompt: string,
   images: string[],
   parameters: Record<string, unknown> = {},
-): Promise<GenerationOutput> {
+): Promise<{ taskId: string }> {
   const apiModelId = VEO_MODEL_MAP[modelId];
   if (!apiModelId) {
-    return { success: false, error: `Unknown Veo model: ${modelId}` };
+    throw new Error(`Unknown Veo model: ${modelId}`);
   }
 
   console.log(`[API:${requestId}] Gemini video generation - Model: ${apiModelId}, Prompt: ${prompt?.length || 0} chars, Images: ${images?.length || 0}`);
@@ -252,7 +257,7 @@ export async function generateWithGeminiVideo(
   // Validate image-to-video models have an image
   if (modelId.includes("image-to-video") && (!images || images.length === 0)) {
     console.error(`[API:${requestId}] Image required for image-to-video model: ${modelId}`);
-    return { success: false, error: "Image required for image-to-video model" };
+    throw new Error("Image required for image-to-video model");
   }
 
   // Add image for image-to-video models
@@ -276,79 +281,80 @@ export async function generateWithGeminiVideo(
 
   console.log(`[API:${requestId}] Veo config: ${JSON.stringify(config)}`);
 
-  // Start video generation (async operation)
-  const startTime = Date.now();
+  // Start video generation (async operation) and return its name immediately
+  const operation = await ai.models.generateVideos(
+    requestArgs as unknown as Parameters<typeof ai.models.generateVideos>[0]
+  );
 
-  let operation;
-  try {
-    operation = await ai.models.generateVideos(requestArgs as unknown as Parameters<typeof ai.models.generateVideos>[0]);
+  if (!operation.name) {
+    throw new Error("Veo submission returned no operation name");
+  }
+  console.log(`[API:${requestId}] Veo operation submitted: ${operation.name}`);
+  return { taskId: operation.name };
+}
 
-    // Poll for completion (10s intervals, 5min timeout)
-    const POLL_INTERVAL = 10_000;
-    const TIMEOUT = 5 * 60 * 1000;
+/**
+ * Check a Veo operation once by resuming it from its name. Fetches and
+ * base64-encodes the video on completion. Throws on transient poll failures
+ * so the client can retry.
+ */
+export async function checkGeminiVideoTaskOnce(
+  requestId: string,
+  apiKey: string,
+  operationName: string,
+): Promise<TaskCheckResult> {
+  const ai = new GoogleGenAI({ apiKey });
 
-    while (!operation.done) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed > TIMEOUT) {
-        console.error(`[API:${requestId}] Veo generation timed out after ${(elapsed / 1000).toFixed(0)}s`);
-        return { success: false, error: "Video generation timed out after 5 minutes" };
-      }
+  // The SDK polls using operation.name only, so a name-only object resumes it.
+  const operation = await ai.operations.getVideosOperation({
+    operation: { name: operationName } as unknown as Parameters<
+      typeof ai.operations.getVideosOperation
+    >[0]["operation"],
+  });
 
-      console.log(`[API:${requestId}] Veo polling... (${(elapsed / 1000).toFixed(0)}s elapsed)`);
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
-      operation = await ai.operations.getVideosOperation({ operation });
-    }
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error(`[API:${requestId}] Veo generation failed: ${msg}`);
-    return { success: false, error: `Video generation failed: ${msg}` };
+  if (!operation.done) {
+    return { status: "processing" };
   }
 
-  const duration = Date.now() - startTime;
-  console.log(`[API:${requestId}] Veo generation completed in ${(duration / 1000).toFixed(1)}s`);
+  if (operation.error) {
+    const msg = (operation.error as { message?: string }).message || "Video generation failed";
+    return { status: "failed", error: msg };
+  }
 
-  // Extract generated video
   const generatedVideos = operation.response?.generatedVideos;
   if (!generatedVideos || generatedVideos.length === 0) {
-    console.error(`[API:${requestId}] No generated videos in Veo response`);
-    return { success: false, error: "No video generated. The content may have been filtered by safety policies." };
+    return {
+      status: "failed",
+      error: "No video generated. The content may have been filtered by safety policies.",
+    };
   }
 
   const videoUri = generatedVideos[0]?.video?.uri;
   if (!videoUri) {
-    console.error(`[API:${requestId}] No video URI in Veo response`);
-    return { success: false, error: "No video URI in response" };
+    return { status: "failed", error: "No video URI in response" };
   }
 
   // Fetch the video (append API key for authentication)
   const videoUrl = `${videoUri}&key=${apiKey}`;
-  console.log(`[API:${requestId}] Fetching video from URI...`);
+  console.log(`[API:${requestId}] Fetching Veo video from URI...`);
 
   const controller = new AbortController();
   const fetchTimeout = setTimeout(() => controller.abort(), 60_000);
   try {
     const videoResponse = await fetch(videoUrl, { signal: controller.signal });
     if (!videoResponse.ok) {
-      console.error(`[API:${requestId}] Failed to fetch video: ${videoResponse.status}`);
-      return { success: false, error: `Failed to download generated video: ${videoResponse.status}` };
+      throw new Error(`Failed to download generated video: ${videoResponse.status}`);
     }
 
     const videoBuffer = await videoResponse.arrayBuffer();
     const videoSizeMB = (videoBuffer.byteLength / (1024 * 1024)).toFixed(2);
-    console.log(`[API:${requestId}] Video downloaded: ${videoSizeMB}MB`);
-
     const base64Video = Buffer.from(videoBuffer).toString("base64");
-    const dataUrl = `data:video/mp4;base64,${base64Video}`;
-
-    console.log(`[API:${requestId}] SUCCESS - Returning ${videoSizeMB}MB video`);
+    console.log(`[API:${requestId}] SUCCESS - Returning ${videoSizeMB}MB Veo video`);
 
     return {
-      success: true,
-      outputs: [{ type: "video", data: dataUrl }],
+      status: "completed",
+      result: { success: true, outputs: [{ type: "video", data: `data:video/mp4;base64,${base64Video}` }] },
     };
-  } catch (error) {
-    console.error(`[API:${requestId}] Failed to download video: ${error}`);
-    return { success: false, error: "Failed to download generated video" };
   } finally {
     clearTimeout(fetchTimeout);
   }

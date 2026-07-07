@@ -12,6 +12,7 @@ import { checkKieTaskOnce, fetchKieMediaResult, isVeoModel } from "../providers/
 import { checkReplicateTaskOnce } from "../providers/replicate";
 import { checkFalTaskOnce, isValidFalQueueUrl } from "../providers/fal";
 import { checkWaveSpeedTaskOnce, buildWaveSpeedPollUrl } from "../providers/wavespeed";
+import { checkGeminiVideoTaskOnce } from "../providers/gemini";
 import { buildMediaResponse, capabilitiesForMediaType } from "../route";
 import type { TaskCheckResult } from "../providers/taskPolling";
 
@@ -117,6 +118,15 @@ export async function POST(request: NextRequest) {
       const pollUrl = buildWaveSpeedPollUrl(taskId, pollContext?.pollUrl);
 
       const check = await checkWaveSpeedTaskOnce(requestId, apiKey, pollUrl, modelName, capabilities);
+      return finishTask(body, check);
+    }
+
+    if (provider === 'gemini-video') {
+      const apiKey = request.headers.get("X-Gemini-API-Key") || process.env.GEMINI_API_KEY;
+      if (!apiKey) return missingKeyResponse("Gemini");
+
+      // taskId is the long-running operation name; the SDK resumes it by name
+      const check = await checkGeminiVideoTaskOnce(requestId, apiKey, taskId);
       return finishTask(body, check);
     }
 
