@@ -42,6 +42,7 @@ vi.mock("@/lib/images", () => ({
 }));
 
 import { POST, clearFalInputMappingCache } from "../route";
+import { POST as POLL_POST } from "../poll/route";
 
 // Store original env
 const originalEnv = { ...process.env };
@@ -1063,13 +1064,15 @@ describe("/api/generate route", () => {
         { "X-Replicate-API-Key": "test-replicate-key" }
       );
 
+      // Submit returns a polling handle immediately
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.image).toContain("data:image/png;base64,");
-      expect(data.contentType).toBe("image");
+      expect(data.polling).toBe(true);
+      expect(data.taskId).toBe("prediction123");
+      expect(data.pollProvider).toBe("replicate");
 
       // Verify API key was passed correctly
       expect(mockFetch).toHaveBeenCalledWith(
@@ -1080,6 +1083,24 @@ describe("/api/generate route", () => {
           }),
         })
       );
+
+      // Poll completes and returns the media
+      const pollResponse = await POLL_POST(createMockPostRequest(
+        {
+          taskId: data.taskId,
+          provider: "replicate",
+          modelId: "stability-ai/sdxl",
+          modelName: "SDXL",
+          mediaType: "image",
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      ));
+      const pollData = await pollResponse.json();
+
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.image).toContain("data:image/png;base64,");
+      expect(pollData.contentType).toBe("image");
     });
 
     it("should generate video successfully via Replicate", async () => {
@@ -1120,6 +1141,7 @@ describe("/api/generate route", () => {
       const request = createMockPostRequest(
         {
           prompt: "A cinematic video",
+          mediaType: "video",
           selectedModel: {
             provider: "replicate",
             modelId: "luma/ray",
@@ -1133,9 +1155,25 @@ describe("/api/generate route", () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.video).toContain("data:video/mp4;base64,");
-      expect(data.contentType).toBe("video");
+      expect(data.polling).toBe(true);
+      expect(data.pollMediaType).toBe("video");
+
+      const pollResponse = await POLL_POST(createMockPostRequest(
+        {
+          taskId: data.taskId,
+          provider: "replicate",
+          modelId: "luma/ray",
+          modelName: "Luma Ray",
+          mediaType: "video",
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      ));
+      const pollData = await pollResponse.json();
+
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.video).toContain("data:video/mp4;base64,");
+      expect(pollData.contentType).toBe("video");
     });
 
     it("should return 401 when Replicate API key missing", async () => {
@@ -1236,15 +1274,26 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(500);
-      expect(data.success).toBe(false);
-      expect(data.error).toContain("NSFW content detected");
+      const pollResponse = await POLL_POST(createMockPostRequest(
+        {
+          taskId: data.taskId,
+          provider: "replicate",
+          modelId: "stability-ai/sdxl",
+          modelName: "SDXL",
+          mediaType: "image",
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      ));
+      const pollData = await pollResponse.json();
+
+      expect(pollResponse.status).toBe(500);
+      expect(pollData.success).toBe(false);
+      expect(pollData.error).toContain("NSFW content detected");
     });
 
-    it("should handle prediction timeout (5 min max)", async () => {
-      vi.useFakeTimers();
-
+    it("should report polling status while prediction is processing", async () => {
       // Model info fetch
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -1262,8 +1311,8 @@ describe("/api/generate route", () => {
         }),
       });
 
-      // Repeatedly return "processing" status
-      mockFetch.mockResolvedValue({
+      // Poll: still processing
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
           id: "prediction123",
@@ -1283,23 +1332,26 @@ describe("/api/generate route", () => {
         { "X-Replicate-API-Key": "test-replicate-key" }
       );
 
-      // Start the POST request
-      const responsePromise = POST(request);
-
-      // Advance time past the 5-minute timeout
-      // We need to run pending timers multiple times to simulate polling
-      for (let i = 0; i < 310; i++) {
-        await vi.advanceTimersByTimeAsync(1000);
-      }
-
-      const response = await responsePromise;
+      const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(500);
-      expect(data.success).toBe(false);
-      expect(data.error).toContain("timed out");
+      const pollResponse = await POLL_POST(createMockPostRequest(
+        {
+          taskId: data.taskId,
+          provider: "replicate",
+          modelId: "stability-ai/sdxl",
+          modelName: "SDXL",
+          mediaType: "image",
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      ));
+      const pollData = await pollResponse.json();
 
-      vi.useRealTimers();
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.polling).toBe(true);
+      expect(pollData.taskId).toBe("prediction123");
     });
 
     it("should poll for prediction completion", async () => {
@@ -1369,9 +1421,27 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
+      // Client polls until the prediction settles
+      const pollBody = {
+        taskId: data.taskId,
+        provider: "replicate",
+        modelId: "stability-ai/sdxl",
+        modelName: "SDXL",
+        mediaType: "image",
+      };
+      const pollHeaders = { "X-Replicate-API-Key": "test-replicate-key" };
+
+      let pollData = await (await POLL_POST(createMockPostRequest(pollBody, pollHeaders))).json();
+      expect(pollData.polling).toBe(true); // starting
+
+      pollData = await (await POLL_POST(createMockPostRequest(pollBody, pollHeaders))).json();
+      expect(pollData.polling).toBe(true); // processing
+
+      pollData = await (await POLL_POST(createMockPostRequest(pollBody, pollHeaders))).json();
+      expect(pollData.success).toBe(true);
+      expect(pollData.image).toContain("data:image/png;base64,");
 
       // Verify polling occurred (model fetch + create + 3 polls + media fetch = 6 calls)
       expect(mockFetch).toHaveBeenCalledTimes(6);
@@ -1416,6 +1486,7 @@ describe("/api/generate route", () => {
       const request = createMockPostRequest(
         {
           prompt: "Generate a long video",
+          mediaType: "video",
           selectedModel: {
             provider: "replicate",
             modelId: "luma/ray",
@@ -1427,12 +1498,25 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.videoUrl).toBe("https://replicate.delivery/large-video.mp4");
-      expect(data.video).toBeUndefined();
-      expect(data.contentType).toBe("video");
+      const pollResponse = await POLL_POST(createMockPostRequest(
+        {
+          taskId: data.taskId,
+          provider: "replicate",
+          modelId: "luma/ray",
+          modelName: "Luma Ray",
+          mediaType: "video",
+        },
+        { "X-Replicate-API-Key": "test-replicate-key" }
+      ));
+      const pollData = await pollResponse.json();
+
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.videoUrl).toBe("https://replicate.delivery/large-video.mp4");
+      expect(pollData.video).toBeUndefined();
+      expect(pollData.contentType).toBe("video");
     });
 
     it("should pass dynamicInputs to prediction input", async () => {
@@ -1863,6 +1947,23 @@ describe("/api/generate route", () => {
       });
     }
 
+    // Helper: run the client-side poll step against the poll route,
+    // echoing the polling fields from the submit response
+    async function pollFal(data: Record<string, unknown>) {
+      const pollResponse = await POLL_POST(createMockPostRequest(
+        {
+          taskId: data.taskId,
+          provider: "fal",
+          modelId: data.pollModelId,
+          modelName: data.pollModelName,
+          mediaType: data.pollMediaType,
+          pollContext: data.pollContext,
+        },
+        { "X-Fal-API-Key": "test-fal-key" }
+      ));
+      return { pollResponse, pollData: await pollResponse.json() };
+    }
+
     it("should generate image successfully via fal.ai (images array response)", async () => {
       // Schema fetch (for input mapping when no dynamicInputs)
       mockFetch.mockResolvedValueOnce({
@@ -1894,8 +1995,9 @@ describe("/api/generate route", () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.image).toContain("data:image/png;base64,");
-      expect(data.contentType).toBe("image");
+      expect(data.polling).toBe(true);
+      expect(data.taskId).toBe("test-req-id");
+      expect(data.pollProvider).toBe("fal");
 
       // Verify API key was passed correctly (check queue submit call, which is the 2nd call after schema fetch)
       expect(mockFetch).toHaveBeenCalledWith(
@@ -1906,6 +2008,12 @@ describe("/api/generate route", () => {
           }),
         })
       );
+
+      const { pollResponse, pollData } = await pollFal(data);
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.image).toContain("data:image/png;base64,");
+      expect(pollData.contentType).toBe("image");
     });
 
     it("should generate video successfully via fal.ai (video object response)", async () => {
@@ -1925,6 +2033,7 @@ describe("/api/generate route", () => {
       const request = createMockPostRequest(
         {
           prompt: "A cinematic video",
+          mediaType: "video",
           selectedModel: {
             provider: "fal",
             modelId: "fal-ai/runway-gen3",
@@ -1936,11 +2045,13 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.video).toContain("data:video/mp4;base64,");
-      expect(data.contentType).toBe("video");
+      const { pollResponse, pollData } = await pollFal(data);
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.video).toContain("data:video/mp4;base64,");
+      expect(pollData.contentType).toBe("video");
     });
 
     it("should proceed without API key (rate-limited)", async () => {
@@ -2073,10 +2184,12 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.image).toContain("data:image/png;base64,");
+      const { pollResponse, pollData } = await pollFal(data);
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.image).toContain("data:image/png;base64,");
     });
 
     it("should handle output string response format", async () => {
@@ -2107,10 +2220,12 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.image).toContain("data:image/png;base64,");
+      const { pollResponse, pollData } = await pollFal(data);
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.image).toContain("data:image/png;base64,");
     });
 
     it("should return video URL for large videos (>20MB)", async () => {
@@ -2147,6 +2262,7 @@ describe("/api/generate route", () => {
       const request = createMockPostRequest(
         {
           prompt: "Generate a long video",
+          mediaType: "video",
           selectedModel: {
             provider: "fal",
             modelId: "fal-ai/runway-gen3",
@@ -2158,12 +2274,14 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.videoUrl).toBe("https://fal.media/large-video.mp4");
-      expect(data.video).toBeUndefined();
-      expect(data.contentType).toBe("video");
+      const { pollResponse, pollData } = await pollFal(data);
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.videoUrl).toBe("https://fal.media/large-video.mp4");
+      expect(pollData.video).toBeUndefined();
+      expect(pollData.contentType).toBe("video");
     });
 
     it("should filter empty dynamicInputs values", async () => {
@@ -2763,10 +2881,12 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(500);
-      expect(data.success).toBe(false);
-      expect(data.error).toContain("No media URL in response");
+      const { pollResponse, pollData } = await pollFal(data);
+      expect(pollResponse.status).toBe(500);
+      expect(pollData.success).toBe(false);
+      expect(pollData.error).toContain("No media URL in response");
     });
 
     it("should handle model_glb.url response format (Hunyuan 3D)", async () => {
@@ -2808,11 +2928,13 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.contentType).toBe("3d");
-      expect(data.model3dUrl).toBe("https://fal.media/hunyuan3d-output.glb");
+      const { pollResponse, pollData } = await pollFal(data);
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.contentType).toBe("3d");
+      expect(pollData.model3dUrl).toBe("https://fal.media/hunyuan3d-output.glb");
     });
 
     it("should handle model_urls.glb.url response format (Hunyuan 3D variant)", async () => {
@@ -2854,11 +2976,13 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.contentType).toBe("3d");
-      expect(data.model3dUrl).toBe("https://fal.media/hunyuan3d-v2-output.glb");
+      const { pollResponse, pollData } = await pollFal(data);
+      expect(pollResponse.status).toBe(200);
+      expect(pollData.success).toBe(true);
+      expect(pollData.contentType).toBe("3d");
+      expect(pollData.model3dUrl).toBe("https://fal.media/hunyuan3d-v2-output.glb");
     });
 
     it("should include Result keys in error log when no media URL found", async () => {
@@ -2900,10 +3024,12 @@ describe("/api/generate route", () => {
 
       const response = await POST(request);
       const data = await response.json();
+      expect(data.polling).toBe(true);
 
-      expect(response.status).toBe(500);
-      expect(data.success).toBe(false);
-      expect(data.error).toContain("No media URL in response");
+      const { pollResponse, pollData } = await pollFal(data);
+      expect(pollResponse.status).toBe(500);
+      expect(pollData.success).toBe(false);
+      expect(pollData.error).toContain("No media URL in response");
 
       // Verify the enhanced error log includes Result keys
       const errorCalls = consoleSpy.mock.calls;

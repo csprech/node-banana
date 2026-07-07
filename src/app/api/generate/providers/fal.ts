@@ -5,8 +5,9 @@
  * Images are uploaded to fal CDN before submission to avoid payload size issues.
  */
 
-import { GenerationInput, GenerationOutput } from "@/lib/providers/types";
+import { GenerationInput } from "@/lib/providers/types";
 import { validateMediaUrl } from "@/utils/urlValidation";
+import { fetchMediaOutput, TaskCheckResult } from "./taskPolling";
 import {
   INPUT_PATTERNS,
   InputMapping,
@@ -231,15 +232,16 @@ export async function uploadImageToFal(base64DataUrl: string, apiKey: string | n
 }
 
 /**
- * Generate using fal.ai Queue API
- * Uses async queue submission + polling (1s interval) instead of blocking fal.run.
+ * Submit a job to the fal.ai Queue API and return its handle immediately.
  * Images are uploaded to fal CDN before submission to avoid payload size issues.
+ * The client polls /api/generate/poll which calls checkFalTaskOnce.
+ * Throws on submission failure.
  */
-export async function generateWithFalQueue(
+export async function submitFalTask(
   requestId: string,
   apiKey: string | null,
   input: GenerationInput
-): Promise<GenerationOutput> {
+): Promise<{ taskId: string; statusUrl: string; responseUrl: string }> {
   console.log(`[API:${requestId}] fal.ai queue generation - Model: ${input.model.id}, Images: ${input.images?.length || 0}, Prompt: ${input.prompt.length} chars`);
 
   const modelId = input.model.id;
@@ -364,16 +366,10 @@ export async function generateWithFalQueue(
     }
 
     if (submitResponse.status === 429) {
-      return {
-        success: false,
-        error: `${input.model.name}: Rate limit exceeded. ${apiKey ? "Try again in a moment." : "Add an API key in settings for higher limits."}`,
-      };
+      throw new Error(`${input.model.name}: Rate limit exceeded. ${apiKey ? "Try again in a moment." : "Add an API key in settings for higher limits."}`);
     }
 
-    return {
-      success: false,
-      error: `${input.model.name}: ${errorDetail}`,
-    };
+    throw new Error(`${input.model.name}: ${errorDetail}`);
   }
 
   const submitResult = await submitResponse.json();
@@ -382,10 +378,7 @@ export async function generateWithFalQueue(
 
   if (!falRequestId) {
     console.error(`[API:${requestId}] No request_id in queue submit response`);
-    return {
-      success: false,
-      error: "No request_id in queue response",
-    };
+    throw new Error("No request_id in queue response");
   }
 
   // Use URLs from response if provided, with SSRF validation; fall back to constructed URLs
@@ -413,198 +406,94 @@ export async function generateWithFalQueue(
 
   console.log(`[API:${requestId}] Queue request submitted: ${falRequestId}, status URL: ${statusUrl}`);
 
-  // Poll for completion
-  const maxWaitTime = 10 * 60 * 1000; // 10 minutes for video
-  const pollInterval = 1000; // 1 second (matches Replicate/WaveSpeed)
-  const startTime = Date.now();
-  let lastStatus = "";
+  return { taskId: falRequestId, statusUrl, responseUrl };
+}
 
-  while (true) {
-    if (Date.now() - startTime > maxWaitTime) {
-      console.error(`[API:${requestId}] Queue request timed out after 10 minutes`);
-      return {
-        success: false,
-        error: `${input.model.name}: Video generation timed out after 10 minutes`,
-      };
-    }
+/**
+ * Validate a fal.ai queue URL echoed back by the client (SSRF protection).
+ */
+export function isValidFalQueueUrl(url: string): boolean {
+  return validateMediaUrl(url).valid && url.startsWith("https://queue.fal.run/");
+}
 
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
+/**
+ * Check a fal.ai queue request once. Fetches media on completion.
+ * Throws on transient poll failures so the client can retry.
+ */
+export async function checkFalTaskOnce(
+  requestId: string,
+  apiKey: string | null,
+  statusUrl: string,
+  responseUrl: string,
+  modelName: string,
+  capabilities: string[]
+): Promise<TaskCheckResult> {
+  const headers: Record<string, string> = apiKey ? { "Authorization": `Key ${apiKey}` } : {};
 
-    const statusResponse = await fetch(
-      statusUrl,
-      { headers: apiKey ? { "Authorization": `Key ${apiKey}` } : {} }
-    );
-
-    if (!statusResponse.ok) {
-      console.error(`[API:${requestId}] Failed to poll status: ${statusResponse.status}`);
-      return {
-        success: false,
-        error: `Failed to poll status: ${statusResponse.status}`,
-      };
-    }
-
-    const statusResult = await statusResponse.json();
-    const status = statusResult.status;
-
-    if (status !== lastStatus) {
-      console.log(`[API:${requestId}] Queue status: ${status}`);
-      lastStatus = status;
-    }
-
-    if (status === "COMPLETED") {
-      // Fetch the result
-      const resultResponse = await fetch(
-        responseUrl,
-        { headers: apiKey ? { "Authorization": `Key ${apiKey}` } : {} }
-      );
-
-      if (!resultResponse.ok) {
-        console.error(`[API:${requestId}] Failed to fetch result: ${resultResponse.status}`);
-        return {
-          success: false,
-          error: `Failed to fetch result: ${resultResponse.status}`,
-        };
-      }
-
-      const result = await resultResponse.json();
-
-      // Extract media URL from result
-      let mediaUrl: string | null = null;
-
-      // Check for 3D model output (GLB mesh) — must check before images
-      if (result.model_mesh?.url) {
-        mediaUrl = result.model_mesh.url;
-      } else if (result.mesh?.url) {
-        mediaUrl = result.mesh.url;
-      } else if (result.glb?.url) {
-        mediaUrl = result.glb.url;
-      } else if (result.model_glb?.url) {
-        mediaUrl = result.model_glb.url;
-      } else if (result.model_urls?.glb?.url) {
-        mediaUrl = result.model_urls.glb.url;
-      } else if (result.video && result.video.url) {
-        mediaUrl = result.video.url;
-      } else if (result.audio && result.audio.url) {
-        mediaUrl = result.audio.url;
-      } else if (result.images && Array.isArray(result.images) && result.images.length > 0) {
-        mediaUrl = result.images[0].url;
-      } else if (result.image && result.image.url) {
-        mediaUrl = result.image.url;
-      } else if (result.output && typeof result.output === "string") {
-        mediaUrl = result.output;
-      }
-
-      if (!mediaUrl) {
-        console.error(`[API:${requestId}] No media URL found in queue result. Result keys: ${Object.keys(result).join(", ")}`);
-        return {
-          success: false,
-          error: "No media URL in response",
-        };
-      }
-
-      const is3DModel = input.model.capabilities.some(c => c.includes("3d"));
-      const isVideoModel = input.model.capabilities.some(c => c.includes("video"));
-      const isAudioModel = input.model.capabilities.some(c => c.includes("audio"));
-
-      // For 3D models, return URL directly (GLB files are binary — don't base64 encode)
-      if (is3DModel) {
-        console.log(`[API:${requestId}] SUCCESS - Returning 3D model URL`);
-        return {
-          success: true,
-          outputs: [
-            {
-              type: "3d",
-              data: "",
-              url: mediaUrl,
-            },
-          ],
-        };
-      }
-
-      // Validate URL before fetching (SSRF protection)
-      const mediaUrlCheck = validateMediaUrl(mediaUrl);
-      if (!mediaUrlCheck.valid) {
-        return { success: false, error: `Invalid media URL: ${mediaUrlCheck.error}` };
-      }
-
-      // Fetch the media and convert to base64
-      console.log(`[API:${requestId}] Fetching output from: ${mediaUrl.substring(0, 80)}...`);
-      const mediaResponse = await fetch(mediaUrl);
-
-      if (!mediaResponse.ok) {
-        return {
-          success: false,
-          error: `Failed to fetch output: ${mediaResponse.status}`,
-        };
-      }
-
-      // Detect actual media type from response content-type, falling back to model hints
-      const rawContentType = mediaResponse.headers.get("content-type") || "";
-      const isAudioResponse = rawContentType.startsWith("audio/") || (!rawContentType.startsWith("video/") && !rawContentType.startsWith("image/") && isAudioModel);
-
-      if (isAudioResponse) {
-        const audioContentType = rawContentType.startsWith("audio/") ? rawContentType : "audio/mpeg";
-        const audioBuffer = await mediaResponse.arrayBuffer();
-        const audioBase64 = Buffer.from(audioBuffer).toString("base64");
-        console.log(`[API:${requestId}] SUCCESS - Returning audio`);
-        return {
-          success: true,
-          outputs: [{
-            type: "audio",
-            data: `data:${audioContentType};base64,${audioBase64}`,
-            url: mediaUrl,
-          }],
-        };
-      }
-
-      const contentType = rawContentType || (isVideoModel ? "video/mp4" : "image/png");
-      const isVideo = contentType.startsWith("video/");
-
-      const mediaArrayBuffer = await mediaResponse.arrayBuffer();
-      const mediaSizeBytes = mediaArrayBuffer.byteLength;
-      const mediaSizeMB = mediaSizeBytes / (1024 * 1024);
-
-      console.log(`[API:${requestId}] Output: ${contentType}, ${mediaSizeMB.toFixed(2)}MB`);
-
-      // For very large videos (>20MB), return URL only (data left empty for consumers)
-      if (isVideo && mediaSizeMB > 20) {
-        console.log(`[API:${requestId}] SUCCESS - Returning URL for large video`);
-        return {
-          success: true,
-          outputs: [
-            {
-              type: "video",
-              data: "",
-              url: mediaUrl,
-            },
-          ],
-        };
-      }
-
-      const mediaBase64 = Buffer.from(mediaArrayBuffer).toString("base64");
-      console.log(`[API:${requestId}] SUCCESS - Returning ${isVideo ? "video" : "image"}`);
-
-      return {
-        success: true,
-        outputs: [
-          {
-            type: isVideo ? "video" : "image",
-            data: `data:${contentType};base64,${mediaBase64}`,
-            url: mediaUrl,
-          },
-        ],
-      };
-    }
-
-    if (status === "FAILED") {
-      const errorMessage = statusResult.error || "Video generation failed";
-      console.error(`[API:${requestId}] Queue request failed: ${errorMessage}`);
-      return {
-        success: false,
-        error: `${input.model.name}: ${errorMessage}`,
-      };
-    }
-
-    // Continue polling for IN_QUEUE, IN_PROGRESS, etc.
+  const statusResponse = await fetch(statusUrl, { headers });
+  if (!statusResponse.ok) {
+    console.error(`[API:${requestId}] Failed to poll status: ${statusResponse.status}`);
+    throw new Error(`Failed to poll status: ${statusResponse.status}`);
   }
+
+  const statusResult = await statusResponse.json();
+  const status = statusResult.status;
+  console.log(`[API:${requestId}] Queue status: ${status}`);
+
+  if (status === "FAILED") {
+    const errorMessage = statusResult.error || "Generation failed";
+    console.error(`[API:${requestId}] Queue request failed: ${errorMessage}`);
+    return { status: "failed", error: `${modelName}: ${errorMessage}` };
+  }
+
+  if (status !== "COMPLETED") {
+    // IN_QUEUE, IN_PROGRESS, etc. — keep polling
+    return { status: "processing" };
+  }
+
+  // Fetch the result
+  const resultResponse = await fetch(responseUrl, { headers });
+  if (!resultResponse.ok) {
+    console.error(`[API:${requestId}] Failed to fetch result: ${resultResponse.status}`);
+    throw new Error(`Failed to fetch result: ${resultResponse.status}`);
+  }
+
+  const result = await resultResponse.json();
+
+  // Extract media URL from result
+  let mediaUrl: string | null = null;
+
+  // Check for 3D model output (GLB mesh) — must check before images
+  if (result.model_mesh?.url) {
+    mediaUrl = result.model_mesh.url;
+  } else if (result.mesh?.url) {
+    mediaUrl = result.mesh.url;
+  } else if (result.glb?.url) {
+    mediaUrl = result.glb.url;
+  } else if (result.model_glb?.url) {
+    mediaUrl = result.model_glb.url;
+  } else if (result.model_urls?.glb?.url) {
+    mediaUrl = result.model_urls.glb.url;
+  } else if (result.video && result.video.url) {
+    mediaUrl = result.video.url;
+  } else if (result.audio && result.audio.url) {
+    mediaUrl = result.audio.url;
+  } else if (result.images && Array.isArray(result.images) && result.images.length > 0) {
+    mediaUrl = result.images[0].url;
+  } else if (result.image && result.image.url) {
+    mediaUrl = result.image.url;
+  } else if (result.output && typeof result.output === "string") {
+    mediaUrl = result.output;
+  }
+
+  if (!mediaUrl) {
+    console.error(`[API:${requestId}] No media URL found in queue result. Result keys: ${Object.keys(result).join(", ")}`);
+    return { status: "failed", error: "No media URL in response" };
+  }
+
+  const mediaResult = await fetchMediaOutput(requestId, mediaUrl, capabilities);
+  if (!mediaResult.success) {
+    return { status: "failed", error: `${modelName}: ${mediaResult.error}` };
+  }
+  return { status: "completed", result: mediaResult };
 }

@@ -131,6 +131,7 @@ export async function executeGenerateAudio(
           modelId: result.pollModelId,
           modelName: result.pollModelName,
           mediaType: result.pollMediaType,
+          pollContext: result.pollContext,
           headers,
           signal,
         });

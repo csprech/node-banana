@@ -3,7 +3,8 @@
  */
 
 export { generateWithGemini } from "./gemini";
-export { generateWithReplicate } from "./replicate";
-export { clearFalInputMappingCache, generateWithFalQueue } from "./fal";
+export { submitReplicateTask, checkReplicateTaskOnce } from "./replicate";
+export { clearFalInputMappingCache, submitFalTask, checkFalTaskOnce } from "./fal";
 export { generateWithKie } from "./kie";
-export { generateWithWaveSpeed } from "./wavespeed";
+export { submitWaveSpeedTask, checkWaveSpeedTaskOnce } from "./wavespeed";
+export { fetchMediaOutput, type TaskCheckResult } from "./taskPolling";

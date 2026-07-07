@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateWithReplicate } from "../replicate";
+import { submitReplicateTask } from "../replicate";
 import type { GenerationInput } from "@/lib/providers/types";
 
 /**
@@ -110,7 +110,7 @@ describe("Replicate prompt passthrough with dynamicInputs", () => {
       },
     });
 
-    await generateWithReplicate("test-req", "test-api-key", input);
+    await submitReplicateTask("test-req", "test-api-key", input);
 
     expect(capturedPredictionBody).not.toBeNull();
     expect(capturedPredictionBody!.prompt).toBe("a photo of a cat");
@@ -126,7 +126,7 @@ describe("Replicate prompt passthrough with dynamicInputs", () => {
       },
     });
 
-    await generateWithReplicate("test-req", "test-api-key", input);
+    await submitReplicateTask("test-req", "test-api-key", input);
 
     expect(capturedPredictionBody).not.toBeNull();
     // dynamicInputs value wins - not overwritten by input.prompt
@@ -139,7 +139,7 @@ describe("Replicate prompt passthrough with dynamicInputs", () => {
       dynamicInputs: undefined,
     });
 
-    await generateWithReplicate("test-req", "test-api-key", input);
+    await submitReplicateTask("test-req", "test-api-key", input);
 
     expect(capturedPredictionBody).not.toBeNull();
     expect(capturedPredictionBody!.prompt).toBe("a cat");

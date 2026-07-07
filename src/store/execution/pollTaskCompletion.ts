@@ -14,6 +14,8 @@ export interface PollGenerateTaskOptions {
   modelId: string;
   modelName: string;
   mediaType: string;
+  /** Provider-specific poll state from the submit response (e.g. fal queue URLs), echoed back on each poll */
+  pollContext?: Record<string, string>;
   headers: Record<string, string>;
   signal?: AbortSignal;
 }
@@ -31,7 +33,7 @@ const MAX_CONSECUTIVE_ERRORS = 10;
 export async function pollGenerateTask(
   options: PollGenerateTaskOptions
 ): Promise<GenerateResponse> {
-  const { taskId, provider, modelId, modelName, mediaType, headers, signal } = options;
+  const { taskId, provider, modelId, modelName, mediaType, pollContext, headers, signal } = options;
 
   const startTime = Date.now();
   let interval = INITIAL_INTERVAL;
@@ -69,7 +71,7 @@ export async function pollGenerateTask(
       response = await fetch("/api/generate/poll", {
         method: "POST",
         headers,
-        body: JSON.stringify({ taskId, provider, modelId, modelName, mediaType }),
+        body: JSON.stringify({ taskId, provider, modelId, modelName, mediaType, pollContext }),
         ...(signal ? { signal } : {}),
       });
     } catch (error) {

@@ -2,37 +2,38 @@
  * Replicate Provider for Generate API Route
  *
  * Handles image/video generation using Replicate's prediction API.
+ * Uses submit + client-poll: submitReplicateTask creates the prediction and
+ * returns immediately; the client polls /api/generate/poll which calls
+ * checkReplicateTaskOnce until the prediction settles.
  */
 
-import { GenerationInput, GenerationOutput } from "@/lib/providers/types";
-import { validateMediaUrl } from "@/utils/urlValidation";
+import { GenerationInput } from "@/lib/providers/types";
+import { fetchMediaOutput, TaskCheckResult } from "./taskPolling";
 import {
   getParameterTypesFromSchema,
   coerceParameterTypes,
   getInputMappingFromSchema,
 } from "../schemaUtils";
 
+const REPLICATE_API_BASE = "https://api.replicate.com/v1";
+
 /**
- * Generate image using Replicate API
+ * Submit a Replicate prediction and return its ID immediately.
+ * Throws on submission failure.
  */
-export async function generateWithReplicate(
+export async function submitReplicateTask(
   requestId: string,
   apiKey: string,
   input: GenerationInput
-): Promise<GenerationOutput> {
+): Promise<{ taskId: string }> {
   console.log(`[API:${requestId}] Replicate generation - Model: ${input.model.id}, Images: ${input.images?.length || 0}, Prompt: ${input.prompt.length} chars`);
-
-  const REPLICATE_API_BASE = "https://api.replicate.com/v1";
 
   // Get the latest version of the model
   const modelId = input.model.id;
   const [owner, name] = modelId.split("/");
 
   if (!owner || !name) {
-    return {
-      success: false,
-      error: `Invalid Replicate model ID "${modelId}": expected "owner/name" format`,
-    };
+    throw new Error(`Invalid Replicate model ID "${modelId}": expected "owner/name" format`);
   }
 
   // First, get the model to find the latest version
@@ -46,20 +47,14 @@ export async function generateWithReplicate(
   );
 
   if (!modelResponse.ok) {
-    return {
-      success: false,
-      error: `Failed to get model info: ${modelResponse.status}`,
-    };
+    throw new Error(`Failed to get model info: ${modelResponse.status}`);
   }
 
   const modelData = await modelResponse.json();
   const version = modelData.latest_version?.id;
 
   if (!version) {
-    return {
-      success: false,
-      error: "Model has no available version",
-    };
+    throw new Error("Model has no available version");
   }
 
   const hasDynamicInputs = input.dynamicInputs && Object.keys(input.dynamicInputs).length > 0;
@@ -150,195 +145,75 @@ export async function generateWithReplicate(
 
     // Handle rate limits
     if (createResponse.status === 429) {
-      return {
-        success: false,
-        error: `${input.model.name}: Rate limit exceeded. Try again in a moment.`,
-      };
+      throw new Error(`${input.model.name}: Rate limit exceeded. Try again in a moment.`);
     }
 
-    return {
-      success: false,
-      error: `${input.model.name}: ${errorDetail}`,
-    };
+    throw new Error(`${input.model.name}: ${errorDetail}`);
   }
 
   const prediction = await createResponse.json();
   console.log(`[API:${requestId}] Prediction created: ${prediction.id}`);
 
-  // Poll for completion — video models get a longer timeout
-  const isVideoModel = input.model.capabilities.some(c => c.includes("video"));
-  const maxWaitTime = isVideoModel ? 10 * 60 * 1000 : 5 * 60 * 1000;
-  const pollInterval = 1000; // 1 second
-  const startTime = Date.now();
+  if (!prediction.id) {
+    throw new Error(`${input.model.name}: No prediction ID returned from API`);
+  }
 
-  let currentPrediction = prediction;
-  let lastStatus = "";
+  return { taskId: prediction.id };
+}
 
-  while (
-    currentPrediction.status !== "succeeded" &&
-    currentPrediction.status !== "failed" &&
-    currentPrediction.status !== "canceled"
-  ) {
-    if (Date.now() - startTime > maxWaitTime) {
-      return {
-        success: false,
-        error: `${input.model.name}: Generation timed out after ${maxWaitTime / 60000} minutes.`,
-      };
+/**
+ * Check a Replicate prediction once. Fetches media on success.
+ * Throws on transient poll failures so the client can retry.
+ */
+export async function checkReplicateTaskOnce(
+  requestId: string,
+  apiKey: string,
+  taskId: string,
+  modelName: string,
+  capabilities: string[]
+): Promise<TaskCheckResult> {
+  const pollResponse = await fetch(
+    `${REPLICATE_API_BASE}/predictions/${taskId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
     }
+  );
 
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
-
-    const pollResponse = await fetch(
-      `${REPLICATE_API_BASE}/predictions/${currentPrediction.id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
-    );
-
-    if (!pollResponse.ok) {
-      return {
-        success: false,
-        error: `Failed to poll prediction: ${pollResponse.status}`,
-      };
-    }
-
-    currentPrediction = await pollResponse.json();
-    if (currentPrediction.status !== lastStatus) {
-      console.log(`[API:${requestId}] Prediction status: ${currentPrediction.status}`);
-      lastStatus = currentPrediction.status;
-    }
+  if (!pollResponse.ok) {
+    throw new Error(`Failed to poll prediction: ${pollResponse.status}`);
   }
 
-  if (currentPrediction.status === "failed") {
-    const failureReason = currentPrediction.error || "Prediction failed";
-    return {
-      success: false,
-      error: `${input.model.name}: ${failureReason}`,
-    };
+  const prediction = await pollResponse.json();
+  console.log(`[API:${requestId}] Prediction status: ${prediction.status}`);
+
+  if (prediction.status === "failed") {
+    return { status: "failed", error: prediction.error || "Prediction failed" };
   }
 
-  if (currentPrediction.status === "canceled") {
-    return {
-      success: false,
-      error: "Prediction was canceled",
-    };
+  if (prediction.status === "canceled") {
+    return { status: "failed", error: "Prediction was canceled" };
   }
 
-  // Extract output
-  const output = currentPrediction.output;
-  if (!output) {
-    return {
-      success: false,
-      error: "No output from prediction",
-    };
+  if (prediction.status !== "succeeded") {
+    return { status: "processing" };
   }
 
-  // Output can be a single URL string or an array — filter to valid strings only
+  // Extract output — can be a single URL string or an array
+  const output = prediction.output;
   const rawOutputs = Array.isArray(output) ? output : [output];
   const outputUrls: string[] = rawOutputs.filter(
     (v): v is string => typeof v === "string" && v.length > 0
   );
 
   if (outputUrls.length === 0) {
-    return {
-      success: false,
-      error: "No output from prediction",
-    };
+    return { status: "failed", error: "No output from prediction" };
   }
 
-  // Fetch the first output and convert to base64
-  const mediaUrl = outputUrls[0];
-
-  // Validate URL before fetching (SSRF protection)
-  const mediaUrlCheck = validateMediaUrl(mediaUrl);
-  if (!mediaUrlCheck.valid) {
-    console.error(`[API:${requestId}] Invalid media URL from Replicate: ${mediaUrl}`);
-    return { success: false, error: `Invalid media URL: ${mediaUrlCheck.error}` };
+  const result = await fetchMediaOutput(requestId, outputUrls[0], capabilities);
+  if (!result.success) {
+    return { status: "failed", error: `${modelName}: ${result.error}` };
   }
-
-  console.log(`[API:${requestId}] Fetching output from: ${mediaUrl.substring(0, 80)}...`);
-  const mediaResponse = await fetch(mediaUrl);
-
-  if (!mediaResponse.ok) {
-    return {
-      success: false,
-      error: `Failed to fetch output: ${mediaResponse.status}`,
-    };
-  }
-
-  // Check if this is a 3D model — return URL directly (GLB files are binary)
-  const is3DModel = input.model.capabilities.some(c => c.includes("3d"));
-  if (is3DModel) {
-    console.log(`[API:${requestId}] SUCCESS - Returning 3D model URL`);
-    return {
-      success: true,
-      outputs: [
-        {
-          type: "3d",
-          data: "",
-          url: mediaUrl,
-        },
-      ],
-    };
-  }
-
-  // Determine MIME type from response
-  const contentType = mediaResponse.headers.get("content-type") || "image/png";
-  const isVideo = contentType.startsWith("video/");
-  const isConcreteMedia = contentType.startsWith("audio/") || contentType.startsWith("video/") || contentType.startsWith("image/");
-  const isAudio = contentType.startsWith("audio/") ||
-    (!isConcreteMedia && input.model.capabilities.some(c => c.includes("audio")));
-
-  const mediaArrayBuffer = await mediaResponse.arrayBuffer();
-  const mediaSizeBytes = mediaArrayBuffer.byteLength;
-  const mediaSizeMB = mediaSizeBytes / (1024 * 1024);
-
-  console.log(`[API:${requestId}] Output: ${contentType}, ${mediaSizeMB.toFixed(2)}MB`);
-
-  // For very large videos (>20MB), return URL only (data left empty for consumers)
-  if (isVideo && mediaSizeMB > 20) {
-    console.log(`[API:${requestId}] SUCCESS - Returning URL for large video`);
-    return {
-      success: true,
-      outputs: [
-        {
-          type: "video",
-          data: "",
-          url: mediaUrl,
-        },
-      ],
-    };
-  }
-
-  const mediaBase64 = Buffer.from(mediaArrayBuffer).toString("base64");
-
-  if (isAudio) {
-    const audioContentType = contentType.startsWith("audio/") ? contentType : "audio/mpeg";
-    console.log(`[API:${requestId}] SUCCESS - Returning audio`);
-    return {
-      success: true,
-      outputs: [
-        {
-          type: "audio",
-          data: `data:${audioContentType};base64,${mediaBase64}`,
-          url: mediaUrl,
-        },
-      ],
-    };
-  }
-
-  console.log(`[API:${requestId}] SUCCESS - Returning ${isVideo ? "video" : "image"}`);
-
-  return {
-    success: true,
-    outputs: [
-      {
-        type: isVideo ? "video" : "image",
-        data: `data:${contentType};base64,${mediaBase64}`,
-        url: mediaUrl,
-      },
-    ],
-  };
+  return { status: "completed", result };
 }

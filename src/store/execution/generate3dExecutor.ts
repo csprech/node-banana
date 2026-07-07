@@ -119,6 +119,7 @@ export async function executeGenerate3D(
           modelId: result.pollModelId,
           modelName: result.pollModelName,
           mediaType: result.pollMediaType,
+          pollContext: result.pollContext,
           headers,
           signal,
         });

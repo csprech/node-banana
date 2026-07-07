@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateWithFalQueue, clearFalInputMappingCache } from "../fal";
+import { submitFalTask, clearFalInputMappingCache } from "../fal";
 import type { GenerationInput } from "@/lib/providers/types";
 
 /**
@@ -140,7 +140,7 @@ describe("fal.ai prompt passthrough with dynamicInputs", () => {
       },
     });
 
-    await generateWithFalQueue("test-req", "test-api-key", input);
+    await submitFalTask("test-req", "test-api-key", input);
 
     expect(capturedQueueBody).not.toBeNull();
     expect(capturedQueueBody!.prompt).toBe("a photo of a cat");
@@ -156,7 +156,7 @@ describe("fal.ai prompt passthrough with dynamicInputs", () => {
       },
     });
 
-    await generateWithFalQueue("test-req", "test-api-key", input);
+    await submitFalTask("test-req", "test-api-key", input);
 
     expect(capturedQueueBody).not.toBeNull();
     // dynamicInputs value wins - not overwritten by input.prompt
@@ -169,7 +169,7 @@ describe("fal.ai prompt passthrough with dynamicInputs", () => {
       dynamicInputs: undefined,
     });
 
-    await generateWithFalQueue("test-req", "test-api-key", input);
+    await submitFalTask("test-req", "test-api-key", input);
 
     expect(capturedQueueBody).not.toBeNull();
     expect(capturedQueueBody!.prompt).toBe("a cat");

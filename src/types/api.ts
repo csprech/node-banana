@@ -30,13 +30,14 @@ export interface GenerateResponse {
   model3dUrl?: string; // For 3D models, return GLB URL directly
   contentType?: "image" | "video" | "3d" | "audio";
   error?: string;
-  // Client-side polling fields (for long-running Kie tasks)
+  // Client-side polling fields (for long-running provider tasks)
   polling?: boolean; // true = task submitted, poll for completion
-  taskId?: string; // Kie task ID to poll
-  pollProvider?: string; // 'kie' — tells poll endpoint which provider
+  taskId?: string; // provider task ID to poll
+  pollProvider?: string; // 'kie' | 'fal' | 'replicate' | 'wavespeed' — tells poll endpoint which provider
   pollModelId?: string; // model ID for result handling
   pollModelName?: string; // display name for error messages
   pollMediaType?: string; // 'video' | 'image' | 'audio' — for result handling
+  pollContext?: Record<string, string>; // provider-specific poll state (e.g. fal status/response URLs), echoed back by the client and re-validated server-side
 }
 
 // API Request/Response types for LLM Text Generation

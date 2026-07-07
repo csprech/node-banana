@@ -136,6 +136,7 @@ export async function executeGenerateVideo(
           modelId: result.pollModelId,
           modelName: result.pollModelName,
           mediaType: result.pollMediaType,
+          pollContext: result.pollContext,
           headers,
           signal,
         });

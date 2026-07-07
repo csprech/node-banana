@@ -14,10 +14,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { GenerateRequest, GenerateResponse, ModelType, SelectedModel, ProviderType } from "@/types";
 import { GenerationInput, ModelCapability } from "@/lib/providers/types";
 import { generateWithGemini, generateWithGeminiVideo } from "./providers/gemini";
-import { generateWithReplicate } from "./providers/replicate";
-import { clearFalInputMappingCache as _clearFalInputMappingCache, generateWithFalQueue } from "./providers/fal";
+import { submitReplicateTask } from "./providers/replicate";
+import { clearFalInputMappingCache as _clearFalInputMappingCache, submitFalTask } from "./providers/fal";
 import { submitKieTask } from "./providers/kie";
-import { generateWithWaveSpeed } from "./providers/wavespeed";
+import { submitWaveSpeedTask } from "./providers/wavespeed";
 
 // Re-export for backward compatibility (test file imports from route)
 export const clearFalInputMappingCache = _clearFalInputMappingCache;
@@ -73,7 +73,7 @@ export function buildMediaResponse(output: { type: string; data: string; url?: s
   });
 }
 
-function capabilitiesForMediaType(mediaType?: string): ModelCapability[] {
+export function capabilitiesForMediaType(mediaType?: string): ModelCapability[] {
   const map: Record<string, ModelCapability[]> = {
     audio: ["text-to-audio"],
     video: ["text-to-video"],
@@ -195,28 +195,27 @@ export async function POST(request: NextRequest) {
         dynamicInputs: processedDynamicInputs,
       };
 
-      const result = await generateWithReplicate(requestId, replicateApiKey, genInput);
-
-      if (!result.success) {
+      // Submit task and return immediately — client polls for completion
+      try {
+        const { taskId } = await submitReplicateTask(requestId, replicateApiKey, genInput);
+        return NextResponse.json<GenerateResponse>({
+          success: true,
+          polling: true,
+          taskId,
+          pollProvider: 'replicate',
+          pollModelId: selectedModel.modelId,
+          pollModelName: selectedModel.displayName,
+          pollMediaType: mediaType || 'image',
+        });
+      } catch (error) {
         return NextResponse.json<GenerateResponse>(
           {
             success: false,
-            error: result.error || "Generation failed",
+            error: error instanceof Error ? error.message : "Task submission failed",
           },
           { status: 500 }
         );
       }
-
-      // Return first output
-      const output = result.outputs?.[0];
-      if (!output?.data && !output?.url) {
-        return NextResponse.json<GenerateResponse>(
-          { success: false, error: "No output in generation result" },
-          { status: 500 }
-        );
-      }
-
-      return buildMediaResponse(output);
     }
 
     if (provider === "fal") {
@@ -270,28 +269,28 @@ export async function POST(request: NextRequest) {
         dynamicInputs: processedDynamicInputs,
       };
 
-      const result = await generateWithFalQueue(requestId, falApiKey, genInput);
-
-      if (!result.success) {
+      // Submit task and return immediately — client polls for completion
+      try {
+        const { taskId, statusUrl, responseUrl } = await submitFalTask(requestId, falApiKey, genInput);
+        return NextResponse.json<GenerateResponse>({
+          success: true,
+          polling: true,
+          taskId,
+          pollProvider: 'fal',
+          pollModelId: selectedModel.modelId,
+          pollModelName: selectedModel.displayName,
+          pollMediaType: mediaType || 'image',
+          pollContext: { statusUrl, responseUrl },
+        });
+      } catch (error) {
         return NextResponse.json<GenerateResponse>(
           {
             success: false,
-            error: result.error || "Generation failed",
+            error: error instanceof Error ? error.message : "Task submission failed",
           },
           { status: 500 }
         );
       }
-
-      // Return first output
-      const output = result.outputs?.[0];
-      if (!output?.data && !output?.url) {
-        return NextResponse.json<GenerateResponse>(
-          { success: false, error: "No output in generation result" },
-          { status: 500 }
-        );
-      }
-
-      return buildMediaResponse(output);
     }
 
     if (provider === "kie") {
@@ -427,28 +426,28 @@ export async function POST(request: NextRequest) {
         dynamicInputs: processedDynamicInputs,
       };
 
-      const result = await generateWithWaveSpeed(requestId, wavespeedApiKey, genInput);
-
-      if (!result.success) {
+      // Submit task and return immediately — client polls for completion
+      try {
+        const { taskId, pollUrl } = await submitWaveSpeedTask(requestId, wavespeedApiKey, genInput);
+        return NextResponse.json<GenerateResponse>({
+          success: true,
+          polling: true,
+          taskId,
+          pollProvider: 'wavespeed',
+          pollModelId: selectedModel.modelId,
+          pollModelName: selectedModel.displayName,
+          pollMediaType: mediaType || 'image',
+          pollContext: { pollUrl },
+        });
+      } catch (error) {
         return NextResponse.json<GenerateResponse>(
           {
             success: false,
-            error: result.error || "Generation failed",
+            error: error instanceof Error ? error.message : "Task submission failed",
           },
           { status: 500 }
         );
       }
-
-      // Return first output
-      const output = result.outputs?.[0];
-      if (!output?.data && !output?.url) {
-        return NextResponse.json<GenerateResponse>(
-          { success: false, error: "No output in generation result" },
-          { status: 500 }
-        );
-      }
-
-      return buildMediaResponse(output);
     }
 
     // Default: Use Gemini
