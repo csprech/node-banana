@@ -56,6 +56,7 @@ import { ConnectionDropMenu, MenuAction } from "./ConnectionDropMenu";
 import { MultiSelectToolbar } from "./MultiSelectToolbar";
 import { EdgeToolbar } from "./EdgeToolbar";
 import { GlobalImageHistory } from "./GlobalImageHistory";
+import { AssetLibrary } from "./AssetLibrary";
 import { GroupBackgroundsPortal, GroupControlsOverlay } from "./GroupsOverlay";
 import { NodeType, NanoBananaNodeData, HandleType, PromptNodeData, LLMGenerateNodeData, PromptConstructorNodeData, AvailableVariable } from "@/types";
 import { defaultNodeDimensions } from "@/store/utils/nodeDefaults";
@@ -2387,6 +2388,9 @@ export function WorkflowCanvas() {
 
       {/* Global image history */}
       <GlobalImageHistory />
+
+      {/* Persistent asset library (on-disk generations + inputs) */}
+      <AssetLibrary />
 
       {/* Chat toggle button - hidden for now */}
 
