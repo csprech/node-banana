@@ -290,7 +290,7 @@ export function BaseNode({
   return (
     <div
       className={hasExpandedSettings
-        ? `relative flex flex-col w-full h-full overflow-visible bg-neutral-800 rounded-lg ${selected ? "ring-2 ring-blue-500/40 shadow-lg shadow-blue-500/25" : ""}`
+        ? `relative flex flex-col w-full h-full overflow-visible iris-card rounded-xl ${selected ? "iris-card-selected" : ""} ${(isCurrentlyExecuting || isExecuting) ? "iris-card-exec" : ""} ${hasError ? "iris-card-error" : ""}`
         : "contents"}
       onDoubleClick={handleResizeHandleDblClick}
       data-tutorial={hasExpandedSettings ? dataTutorial : undefined}
@@ -306,14 +306,13 @@ export function BaseNode({
       <div
         className={`
           ${hasExpandedSettings ? "flex-1 min-h-0 w-full" : "h-full w-full"} flex flex-col overflow-visible relative
-          ${fullBleed
-            ? `${settingsExpanded ? "rounded-t-lg border-b-0" : "rounded-lg"} bg-neutral-800/50 border border-neutral-700/40`
-            : `bg-neutral-800 ${settingsExpanded ? "rounded-t-lg border-b-0" : "rounded-lg"} shadow-lg border`}
-          ${fullBleed ? "" : (isCurrentlyExecuting || isExecuting ? "border-blue-500 ring-1 ring-blue-500/20" : "border-neutral-700/60")}
-          ${fullBleed ? "" : (hasError ? "border-red-500" : "")}
-          ${fullBleed && selected && !settingsExpanded ? "ring-2 ring-blue-500/40 shadow-lg shadow-blue-500/25" : ""}
-          ${!fullBleed && selected && !settingsExpanded ? "border-blue-500 ring-2 ring-blue-500/40 shadow-lg shadow-blue-500/25" : ""}
-          ${!fullBleed && selected && settingsExpanded ? "border-blue-500" : ""}
+          ${hasExpandedSettings
+            /* Outer wrapper is the material card; inner is a transparent top segment */
+            ? `${settingsExpanded ? "rounded-t-xl" : "rounded-xl"}`
+            : `iris-card ${settingsExpanded ? "rounded-t-xl" : "rounded-xl"}
+               ${(isCurrentlyExecuting || isExecuting) ? "iris-card-exec" : ""}
+               ${hasError ? "iris-card-error" : ""}
+               ${selected ? "iris-card-selected" : ""}`}
           ${className}
         `}
         data-tutorial={!hasExpandedSettings ? dataTutorial : undefined}

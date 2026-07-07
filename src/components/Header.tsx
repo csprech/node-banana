@@ -230,7 +230,7 @@ export function Header() {
           await loadWorkflow(workflow, dirPath);
         }}
       />
-      <header className="h-11 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between px-4 shrink-0">
+      <header className="h-11 iris-topbar flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowQuickstart(true)}

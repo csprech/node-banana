@@ -2184,15 +2184,15 @@ export function WorkflowCanvas() {
         <GroupBackgroundsPortal />
         <GroupControlsOverlay />
         <Background
-          color="#404040"
-          gap={20}
+          color="#22222b"
+          gap={26}
           size={1}
           className={tutorialActive && lockedFeatures ? "opacity-30 pointer-events-none" : ""}
         />
-        <Controls className={`bg-neutral-800 border border-neutral-700 rounded-lg shadow-lg [&>button]:bg-neutral-800 [&>button]:border-neutral-700 [&>button]:fill-neutral-300 [&>button:hover]:bg-neutral-700 [&>button:hover]:fill-neutral-100 ${tutorialActive && lockedFeatures ? "opacity-30 pointer-events-none" : ""}`} />
+        <Controls className={`iris-glass !rounded-xl overflow-hidden [&>button]:bg-transparent [&>button]:border-white/5 [&>button]:fill-neutral-300 [&>button:hover]:bg-white/10 [&>button:hover]:fill-neutral-100 ${tutorialActive && lockedFeatures ? "opacity-30 pointer-events-none" : ""}`} />
         <MiniMap
-          className={`bg-neutral-800 border border-neutral-700 rounded-lg shadow-lg ${tutorialActive && lockedFeatures ? "opacity-30 pointer-events-none" : ""}`}
-          maskColor="rgba(0, 0, 0, 0.6)"
+          className={`iris-glass !rounded-xl ${tutorialActive && lockedFeatures ? "opacity-30 pointer-events-none" : ""}`}
+          maskColor="rgba(0, 0, 0, 0.55)"
           pannable
           zoomable
           nodeColor={(node) => {
