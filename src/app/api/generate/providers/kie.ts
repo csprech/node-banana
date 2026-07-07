@@ -7,6 +7,7 @@
 
 import { GenerationInput, GenerationOutput } from "@/lib/providers/types";
 import { validateMediaUrl } from "@/utils/urlValidation";
+import { cachedUpload } from "./uploadCache";
 
 const MAX_MEDIA_SIZE = 500 * 1024 * 1024; // 500MB
 const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
@@ -326,6 +327,18 @@ export async function uploadMediaToKie(
     }
   }
 
+  // Deduplicated by content hash: identical bytes upload once per process
+  return cachedUpload("kie", apiKey, mediaData, () =>
+    doUploadMediaToKie(requestId, apiKey, declaredMimeType, mediaData)
+  );
+}
+
+async function doUploadMediaToKie(
+  requestId: string,
+  apiKey: string,
+  declaredMimeType: string,
+  mediaData: string
+): Promise<string> {
   // Convert base64 to binary to detect actual type
   const binaryData = Buffer.from(mediaData, "base64");
 

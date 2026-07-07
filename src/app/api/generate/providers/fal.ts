@@ -8,6 +8,7 @@
 import { GenerationInput } from "@/lib/providers/types";
 import { validateMediaUrl } from "@/utils/urlValidation";
 import { fetchMediaOutput, TaskCheckResult } from "./taskPolling";
+import { cachedUpload } from "./uploadCache";
 import {
   INPUT_PATTERNS,
   InputMapping,
@@ -160,6 +161,7 @@ export const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20 MB
  * Upload a base64 data URL image to fal.ai CDN storage.
  * Returns the CDN URL to use in API requests instead of inline base64.
  * If the input is already a URL (not base64), returns it as-is.
+ * Deduplicated by content hash: identical bytes upload once per process.
  */
 export async function uploadImageToFal(base64DataUrl: string, apiKey: string | null): Promise<string> {
   // Already a URL, not base64
@@ -168,6 +170,10 @@ export async function uploadImageToFal(base64DataUrl: string, apiKey: string | n
   const match = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) return base64DataUrl;
 
+  return cachedUpload("fal", apiKey, match[2], () => doUploadImageToFal(match, apiKey));
+}
+
+async function doUploadImageToFal(match: RegExpMatchArray, apiKey: string | null): Promise<string> {
   const estimatedBytes = Math.ceil(match[2].length * 3 / 4);
   if (estimatedBytes > MAX_UPLOAD_SIZE) {
     throw new Error(`Image too large to upload (${(estimatedBytes / (1024 * 1024)).toFixed(1)} MB, max ${MAX_UPLOAD_SIZE / (1024 * 1024)} MB)`);

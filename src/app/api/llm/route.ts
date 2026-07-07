@@ -316,7 +316,7 @@ export async function POST(request: NextRequest) {
       maxTokens,
       hasImages: !!(images && images.length > 0),
       imageCount: images?.length || 0,
-      prompt,
+      promptLength: prompt?.length || 0,
     });
 
     if (!prompt) {

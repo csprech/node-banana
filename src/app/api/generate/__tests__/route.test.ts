@@ -43,6 +43,7 @@ vi.mock("@/lib/images", () => ({
 
 import { POST, clearFalInputMappingCache } from "../route";
 import { POST as POLL_POST } from "../poll/route";
+import { clearUploadCache } from "../providers/uploadCache";
 
 // Store original env
 const originalEnv = { ...process.env };
@@ -99,6 +100,7 @@ describe("/api/generate route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     MockGoogleGenAI.reset();
+    clearUploadCache();
     // Reset env to original
     process.env = { ...originalEnv };
   });
