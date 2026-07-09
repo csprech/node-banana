@@ -150,7 +150,7 @@ function HistorySidebar({
           </button>
           <button
             onClick={onClose}
-            className="w-5 h-5 rounded hover:bg-neutral-700 flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+            className="w-5 h-5 rounded hover:bg-neutral-700 flex items-center justify-center text-neutral-400 hover:text-neutral-100 transition-colors"
             title="Close"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -297,7 +297,7 @@ export function GlobalImageHistory() {
         className={`
           relative w-8 h-8 rounded-lg flex items-center justify-center
           bg-neutral-800 hover:bg-neutral-700 border border-neutral-600
-          text-neutral-400 hover:text-white
+          text-neutral-400 hover:text-neutral-100
           shadow-lg transition-colors
         `}
         title={`${history.length} image${history.length > 1 ? "s" : ""} in history`}
@@ -344,7 +344,7 @@ export function GlobalImageHistory() {
             return (
               <button
                 onClick={handleShowAll}
-                className="absolute animate-fan-enter bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 rounded-lg px-2 py-1 text-[10px] text-neutral-300 hover:text-white shadow-lg transition-colors whitespace-nowrap"
+                className="absolute animate-fan-enter bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 rounded-lg px-2 py-1 text-[10px] text-neutral-300 hover:text-neutral-100 shadow-lg transition-colors whitespace-nowrap"
                 style={
                   {
                     "--fan-x": `${topItemPos.x}px`,

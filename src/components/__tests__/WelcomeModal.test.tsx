@@ -104,7 +104,7 @@ describe("WelcomeModal", () => {
         />
       );
 
-      const backdrop = container.querySelector(".bg-black\\/60");
+      const backdrop = container.querySelector(".bg-black\\/25");
       expect(backdrop).toBeInTheDocument();
     });
   });

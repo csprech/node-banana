@@ -237,7 +237,7 @@ export function AssetLibrary() {
       {/* Trigger button — sits left of the session history button */}
       <button
         onClick={() => setIsOpen((v) => !v)}
-        className="absolute bottom-4 right-80 z-10 w-8 h-8 rounded-lg flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-neutral-400 hover:text-white shadow-lg transition-colors"
+        className="absolute bottom-4 right-80 z-10 w-8 h-8 rounded-lg flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-neutral-400 hover:text-neutral-100 shadow-lg transition-colors"
         title="Asset library"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -261,7 +261,7 @@ export function AssetLibrary() {
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="w-5 h-5 rounded hover:bg-neutral-700 flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+                  className="w-5 h-5 rounded hover:bg-neutral-700 flex items-center justify-center text-neutral-400 hover:text-neutral-100 transition-colors"
                   title="Close"
                 >
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

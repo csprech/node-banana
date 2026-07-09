@@ -94,7 +94,7 @@ export function LLMFallbackPopover({ nodeId, onClose }: LLMFallbackPopoverProps)
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/25 backdrop-blur-sm"
       onClick={onClose}
     >
       <div

@@ -232,7 +232,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
           <select
             value={nodeData.splitMode}
             onChange={handleBasicModeChange}
-            className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-[#1a1a1a] rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
+            className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-neutral-800 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
           >
             <option value="delimiter">Delimiter</option>
             <option value="newline">Newline</option>
@@ -245,7 +245,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
             className={`nodrag nopan shrink-0 py-1 px-2 rounded-md text-[11px] font-medium transition-colors ${
               nodeData.batchMode
                 ? "bg-blue-600/80 text-blue-100"
-                : "bg-[#1a1a1a] text-neutral-500 hover:text-neutral-300"
+                : "bg-neutral-800 text-neutral-500 hover:text-neutral-300"
             }`}
             title={nodeData.batchMode ? "Batch mode: all items sent to one downstream node" : "Enable batch mode"}
           >
@@ -257,7 +257,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
               type="button"
               onClick={handleAutoRouteToPrompts}
               disabled={previewItems.length === 0}
-              className="nodrag nopan shrink-0 py-1 px-1.5 bg-[#1a1a1a] rounded-md text-neutral-400 hover:text-neutral-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="nodrag nopan shrink-0 py-1 px-1.5 bg-neutral-800 rounded-md text-neutral-400 hover:text-neutral-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Auto-route to Prompts"
             >
               <svg className="w-3.5 h-3.5 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -277,7 +277,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
               value={nodeData.delimiter}
               onChange={(e) => updateSettingsAndReparse({ delimiter: e.target.value })}
               placeholder="*"
-              className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-[#1a1a1a] rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
+              className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-neutral-800 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
             />
           </div>
         )}
@@ -289,7 +289,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
               value={nodeData.regexPattern}
               onChange={(e) => updateSettingsAndReparse({ regexPattern: e.target.value })}
               placeholder="/\\n+/"
-              className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-[#1a1a1a] rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
+              className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-neutral-800 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
             />
           </div>
         )}
@@ -313,7 +313,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
                   type="checkbox"
                   checked={nodeData.trimItems}
                   onChange={(e) => updateSettingsAndReparse({ trimItems: e.target.checked })}
-                  className="nodrag nopan w-3 h-3 rounded bg-[#1a1a1a] text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
+                  className="nodrag nopan w-3 h-3 rounded bg-neutral-800 text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
                 />
                 Trim
               </label>
@@ -322,7 +322,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
                   type="checkbox"
                   checked={nodeData.removeEmpty}
                   onChange={(e) => updateSettingsAndReparse({ removeEmpty: e.target.checked })}
-                  className="nodrag nopan w-3 h-3 rounded bg-[#1a1a1a] text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
+                  className="nodrag nopan w-3 h-3 rounded bg-neutral-800 text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
                 />
                 Remove empty
               </label>
@@ -333,7 +333,7 @@ export function ArrayNode({ id, data, selected }: NodeProps<ArrayNodeType>) {
         <div className="mt-1 text-[10px] uppercase tracking-wide text-neutral-500">
           Parsed Items ({previewItems.length})
         </div>
-        <div className="relative min-h-[50px] border border-neutral-700/40 rounded-md bg-[#1a1a1a]">
+        <div className="relative min-h-[50px] border border-neutral-700/40 rounded-md bg-neutral-800">
           {nodeData.error ? (
             <div className="p-2 text-[11px] text-red-400">{nodeData.error}</div>
           ) : previewItems.length === 0 ? (

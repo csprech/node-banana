@@ -60,7 +60,7 @@ export function FTUXModal({ onComplete, onStartTutorial }: FTUXModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/25 backdrop-blur-sm"
       onWheelCapture={(e) => e.stopPropagation()}
     >
       <div className={`relative iris-glass rounded-xl w-full ${currentStep === 4 ? 'max-w-[420px]' : 'max-w-[640px]'} mx-4 shadow-2xl overflow-clip flex flex-col ${currentStep === 4 ? '' : 'max-h-[80vh]'}`}>

@@ -132,7 +132,7 @@ export function WorkflowVersionHistory() {
                     <button
                       onClick={() => handleRestore(v.id)}
                       disabled={restoringId !== null}
-                      className="text-[11px] px-2 py-1 rounded bg-neutral-700 text-neutral-300 hover:bg-blue-600 hover:text-white disabled:opacity-50 transition-colors shrink-0"
+                      className="text-[11px] px-2 py-1 rounded bg-neutral-700 text-neutral-300 hover:bg-blue-600 hover:text-neutral-100 disabled:opacity-50 transition-colors shrink-0"
                     >
                       {restoringId === v.id ? "Restoring…" : "Restore"}
                     </button>

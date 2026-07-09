@@ -281,7 +281,7 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
             {/* Reorder buttons */}
             <div className="flex flex-col gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
-                className="text-neutral-400 hover:text-white disabled:opacity-30 disabled:hover:text-neutral-400"
+                className="text-neutral-400 hover:text-neutral-100 disabled:opacity-30 disabled:hover:text-neutral-400"
                 onClick={() => handleMoveUp(index)}
                 disabled={index === 0}
                 title="Move up"
@@ -291,7 +291,7 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
                 </svg>
               </button>
               <button
-                className="text-neutral-400 hover:text-white disabled:opacity-30 disabled:hover:text-neutral-400"
+                className="text-neutral-400 hover:text-neutral-100 disabled:opacity-30 disabled:hover:text-neutral-400"
                 onClick={() => handleMoveDown(index)}
                 disabled={index === nodeData.rules.length - 1}
                 title="Move down"
@@ -381,7 +381,7 @@ export const ConditionalSwitchNode = memo(({ id, data, selected }: NodeProps<Wor
 
         {/* Add rule button — after Default so it doesn't displace handle alignment */}
         <button
-          className="w-full flex items-center justify-center gap-1 text-neutral-400 hover:text-white text-[10px] py-1 mt-1 rounded hover:bg-teal-900/30 transition-colors"
+          className="w-full flex items-center justify-center gap-1 text-neutral-400 hover:text-neutral-100 text-[10px] py-1 mt-1 rounded hover:bg-teal-900/30 transition-colors"
           onClick={handleAddRule}
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

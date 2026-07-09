@@ -502,7 +502,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
 
         {/* Processing overlay */}
         {nodeData.status === "loading" && (
-          <div className="absolute inset-0 bg-neutral-900/70 rounded flex flex-col items-center justify-center gap-2">
+          <div className="absolute inset-0 bg-black/55 rounded flex flex-col items-center justify-center gap-2">
             <svg
               className="w-6 h-6 animate-spin text-white"
               fill="none"
@@ -540,7 +540,7 @@ export function VideoStitchNode({ id, data, selected }: NodeProps<VideoStitchNod
             />
             <button
               onClick={() => updateNodeData(id, { outputVideo: null, status: "idle" })}
-              className="absolute top-1 right-1 w-5 h-5 bg-neutral-900/80 hover:bg-red-600/80 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+              className="absolute top-1 right-1 w-5 h-5 bg-neutral-900/80 hover:bg-red-600/80 rounded flex items-center justify-center text-neutral-400 hover:text-neutral-100 transition-colors"
               title="Clear video"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

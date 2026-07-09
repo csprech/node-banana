@@ -185,7 +185,7 @@ export function SplitGridSettingsModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm">
       <div
         className="iris-glass rounded-lg p-6 w-[600px] shadow-xl"
         onKeyDown={handleKeyDown}
@@ -363,7 +363,7 @@ export function SplitGridSettingsModal({
           </button>
           <button
             onClick={handleCreate}
-            className="px-4 py-2 text-sm bg-white text-neutral-900 rounded hover:bg-neutral-200 transition-colors"
+            className="px-4 py-2 text-sm bg-neutral-100 text-white rounded hover:bg-neutral-300 transition-colors"
           >
             Create {targetCount} Generate Sets
           </button>

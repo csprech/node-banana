@@ -337,7 +337,7 @@ describe("SplitGridNode", () => {
       );
 
       // Check for loading overlay
-      const overlay = container.querySelector(".bg-neutral-900\\/70");
+      const overlay = container.querySelector(".bg-black\\/55");
       expect(overlay).toBeInTheDocument();
     });
   });

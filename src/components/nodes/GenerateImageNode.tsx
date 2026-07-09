@@ -547,7 +547,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
                       value={currentModelId}
                       onChange={handleModelChange}
                       data-tutorial="generate-model-selector"
-                      className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-[#1a1a1a] rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
+                      className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-neutral-800 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
                     >
                       {GEMINI_IMAGE_MODELS.map((m) => (
                         <option key={m.value} value={m.value}>
@@ -561,7 +561,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
                     <select
                       value={nodeData.aspectRatio || "1:1"}
                       onChange={handleAspectRatioChange}
-                      className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-[#1a1a1a] rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
+                      className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-neutral-800 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
                     >
                       {aspectRatios.map((ratio) => (
                         <option key={ratio} value={ratio}>
@@ -579,7 +579,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
                       <select
                         value={nodeData.resolution || "2K"}
                         onChange={handleResolutionChange}
-                        className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-[#1a1a1a] rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
+                        className="nodrag nopan flex-1 min-w-0 text-[11px] py-1 px-2 bg-neutral-800 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-600 text-white"
                       >
                         {resolutions.map((res) => (
                           <option key={res} value={res}>
@@ -598,7 +598,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
                         type="checkbox"
                         checked={nodeData.useGoogleSearch || false}
                         onChange={handleGoogleSearchToggle}
-                        className="nodrag nopan w-3 h-3 rounded bg-[#1a1a1a] text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
+                        className="nodrag nopan w-3 h-3 rounded bg-neutral-800 text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
                       />
                       Google Search
                     </label>
@@ -612,7 +612,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
                         type="checkbox"
                         checked={nodeData.useImageSearch || false}
                         onChange={handleImageSearchToggle}
-                        className="nodrag nopan w-3 h-3 rounded bg-[#1a1a1a] text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
+                        className="nodrag nopan w-3 h-3 rounded bg-neutral-800 text-neutral-600 focus:ring-1 focus:ring-neutral-600 focus:ring-offset-0"
                       />
                       Image Search
                     </label>
@@ -717,7 +717,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
             )}
             {/* Loading overlay for generation */}
             {nodeData.status === "loading" && (
-              <div className="absolute inset-0 bg-neutral-900/70 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
                 <svg
                   className="w-6 h-6 animate-spin text-white"
                   fill="none"
@@ -757,7 +757,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
             )}
             {/* Loading overlay for carousel navigation */}
             {isLoadingCarouselImage && (
-              <div className="absolute inset-0 bg-neutral-900/50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
                 <svg
                   className="w-4 h-4 animate-spin text-white"
                   fill="none"
@@ -783,7 +783,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
             <div className="absolute top-1 right-1 flex items-center gap-0.5">
               <button
                 onClick={() => downloadMedia(nodeData.outputImage!, "image").catch(() => {})}
-                className="w-5 h-5 bg-neutral-900/80 hover:bg-neutral-700 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+                className="w-5 h-5 bg-neutral-900/80 hover:bg-neutral-700 rounded flex items-center justify-center text-neutral-400 hover:text-neutral-100 transition-colors"
                 title="Download image"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -792,7 +792,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
               </button>
               <button
                 onClick={handleClearImage}
-                className="w-5 h-5 bg-neutral-900/80 hover:bg-red-600/80 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+                className="w-5 h-5 bg-neutral-900/80 hover:bg-red-600/80 rounded flex items-center justify-center text-neutral-400 hover:text-neutral-100 transition-colors"
                 title="Clear image"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -807,7 +807,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
                 <button
                   onClick={handleCarouselPrevious}
                   disabled={isLoadingCarouselImage}
-                  className="w-5 h-5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  className="w-5 h-5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white/70 hover:text-neutral-100 transition-colors"
                   title="Previous image"
                 >
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -820,7 +820,7 @@ export function GenerateImageNode({ id, data, selected }: NodeProps<NanoBananaNo
                 <button
                   onClick={handleCarouselNext}
                   disabled={isLoadingCarouselImage}
-                  className="w-5 h-5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  className="w-5 h-5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white/70 hover:text-neutral-100 transition-colors"
                   title="Next image"
                 >
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

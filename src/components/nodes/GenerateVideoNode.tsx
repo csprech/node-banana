@@ -723,7 +723,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             )}
             {/* Loading overlay for generation */}
             {nodeData.status === "loading" && (
-              <div className="absolute inset-0 bg-neutral-900/70 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
                 <svg
                   className="w-6 h-6 animate-spin text-white"
                   fill="none"
@@ -763,7 +763,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             )}
             {/* Loading overlay for carousel navigation */}
             {isLoadingCarouselVideo && (
-              <div className="absolute inset-0 bg-neutral-900/50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
                 <svg
                   className="w-4 h-4 animate-spin text-white"
                   fill="none"
@@ -789,7 +789,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
             <div className="absolute top-1 right-1 flex items-center gap-0.5">
               <button
                 onClick={() => downloadMedia(nodeData.outputVideo!, "video").catch(() => {})}
-                className="w-5 h-5 bg-neutral-900/80 hover:bg-neutral-700 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+                className="w-5 h-5 bg-neutral-900/80 hover:bg-neutral-700 rounded flex items-center justify-center text-neutral-400 hover:text-neutral-100 transition-colors"
                 title="Download video"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -798,7 +798,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
               </button>
               <button
                 onClick={handleClearVideo}
-                className="w-5 h-5 bg-neutral-900/80 hover:bg-red-600/80 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+                className="w-5 h-5 bg-neutral-900/80 hover:bg-red-600/80 rounded flex items-center justify-center text-neutral-400 hover:text-neutral-100 transition-colors"
                 title="Clear video"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -813,7 +813,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
                 <button
                   onClick={handleCarouselPrevious}
                   disabled={isLoadingCarouselVideo}
-                  className="w-5 h-5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  className="w-5 h-5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white/70 hover:text-neutral-100 transition-colors"
                   title="Previous video"
                 >
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -826,7 +826,7 @@ export function GenerateVideoNode({ id, data, selected }: NodeProps<GenerateVide
                 <button
                   onClick={handleCarouselNext}
                   disabled={isLoadingCarouselVideo}
-                  className="w-5 h-5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  className="w-5 h-5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white/70 hover:text-neutral-100 transition-colors"
                   title="Next video"
                 >
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

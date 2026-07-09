@@ -134,7 +134,7 @@ export function CostDialog({ predictedCost, incurredCost, onClose }: CostDialogP
   const hasExternal = externalItems.length > 0;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm">
       <div className="iris-glass rounded-lg p-6 w-[400px] shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-neutral-100">

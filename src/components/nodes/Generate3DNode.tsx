@@ -404,7 +404,7 @@ export function Generate3DNode({ id, data, selected }: NodeProps<Generate3DNodeT
             )}
             {/* Loading overlay for re-generation */}
             {nodeData.status === "loading" && (
-              <div className="absolute inset-0 bg-neutral-900/70 rounded flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/55 rounded flex items-center justify-center">
                 <svg
                   className="w-6 h-6 animate-spin text-white"
                   fill="none"
@@ -428,7 +428,7 @@ export function Generate3DNode({ id, data, selected }: NodeProps<Generate3DNodeT
             <div className="absolute top-1 right-1">
               <button
                 onClick={handleClear3D}
-                className="w-5 h-5 bg-neutral-900/80 hover:bg-red-600/80 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+                className="w-5 h-5 bg-neutral-900/80 hover:bg-red-600/80 rounded flex items-center justify-center text-neutral-400 hover:text-neutral-100 transition-colors"
                 title="Clear 3D model"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

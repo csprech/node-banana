@@ -175,7 +175,7 @@ export const PromptConstructorEditorModal: React.FC<PromptConstructorEditorModal
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
       <div className="relative iris-glass rounded-lg shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col mx-4">

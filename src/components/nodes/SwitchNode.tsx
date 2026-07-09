@@ -250,7 +250,7 @@ export const SwitchNode = memo(({ id, data, selected }: NodeProps<WorkflowNode>)
 
             {/* Add switch button */}
             <button
-              className="w-full flex items-center justify-center gap-1 text-neutral-400 hover:text-white text-xs py-1 mt-2 rounded hover:bg-violet-900/30 transition-colors"
+              className="w-full flex items-center justify-center gap-1 text-neutral-400 hover:text-neutral-100 text-xs py-1 mt-2 rounded hover:bg-violet-900/30 transition-colors"
               onClick={handleAddSwitch}
             >
               <svg

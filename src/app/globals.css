@@ -1,21 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas-bg: #16161c;
+  --color-canvas-bg: #f2f2f5;
 
-  /* iris neutral ramp — Apple-dark grays carrying a faint cool violet bias,
-     luminance-matched to the defaults so contrast is preserved. Redefining the
-     palette tokens reskins every neutral utility across the app at once. */
-  --color-neutral-100: #f1f1f6;
-  --color-neutral-200: #e2e2ea;
-  --color-neutral-300: #cfcfd9;
-  --color-neutral-400: #9d9daa;
-  --color-neutral-500: #6e6e7b;
-  --color-neutral-600: #4d4d59;
-  --color-neutral-700: #3a3a45;
-  --color-neutral-800: #24242c;
-  --color-neutral-900: #16161c;
-  --color-neutral-950: #0b0b10;
+  /* iris neutral ramp — LIGHT theme. The scale is luminance-inverted relative
+     to Tailwind's default, so markup written for the dark theme (bg-neutral-800
+     panels, text-neutral-100 headings) renders as Apple-light automatically:
+     "800/900" become paper fills, "100/200" become ink. */
+  --color-neutral-100: #1b1b21;
+  --color-neutral-200: #2c2c34;
+  --color-neutral-300: #45454f;
+  --color-neutral-400: #71717d;
+  --color-neutral-500: #9a9aa5;
+  --color-neutral-600: #d2d2da;
+  --color-neutral-700: #e5e5ea;
+  --color-neutral-800: #f0f0f4;
+  --color-neutral-900: #f7f7f9;
+  --color-neutral-950: #ffffff;
 
   /* iris accent — the spectrum's blue-violet, still legible as "blue" */
   --color-blue-100: #e6ecff;
@@ -29,8 +30,8 @@
 }
 
 :root {
-  --background: #0b0b10;
-  --foreground: #fafafa;
+  --background: #f2f2f5;
+  --foreground: #1b1b21;
   /* iris spectrum stops (violet → rose) */
   --iris-s1: #7b6cf6;
   --iris-s2: #4a86f7;
@@ -46,23 +47,23 @@
   --handle-color-video: #f77a8e;
 }
 
-/* iris signature: the primary action. One calm accent — a top-lit violet
-   pill with a soft halo, the way macOS renders its default button. */
+/* iris signature: the primary action. A luminous lime pill with a soft
+   halo — the single saturated moment on an otherwise paper-quiet surface. */
 .iris-run {
-  background: linear-gradient(180deg, #8b7ef8 0%, #6f5ff0 100%);
-  color: #fff;
+  background: radial-gradient(120% 170% at 50% 15%, #d9f76a 0%, #b9ee33 70%, #a8e01f 100%);
+  color: #1c2405;
   box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.35),
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 4px 18px -2px rgba(123, 108, 246, 0.45);
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.55),
+    0 1px 2px rgba(20, 26, 4, 0.1),
+    0 6px 24px -4px rgba(163, 230, 53, 0.8);
   transition: filter 0.15s ease, box-shadow 0.2s ease;
 }
 .iris-run:hover {
-  filter: brightness(1.07);
+  filter: brightness(1.04) saturate(1.05);
   box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.35),
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 5px 22px -2px rgba(123, 108, 246, 0.6);
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.55),
+    0 1px 2px rgba(20, 26, 4, 0.1),
+    0 8px 30px -4px rgba(163, 230, 53, 0.95);
 }
 @media (prefers-reduced-motion: reduce) {
   .iris-run { transition: none; }
@@ -72,42 +73,42 @@
    iris material system — light, depth, restraint
    ============================================================ */
 
-/* The stage: a lit softbox, not a flat void. A soft overhead glow falls
-   off into deep near-black; the dot grid is barely there. */
+/* The stage: soft daylight paper. A gentle top sheen falls off into a
+   slightly cooler gray; the dot grid is barely there. */
 .react-flow {
   background:
-    radial-gradient(130% 90% at 50% -25%, #1a1a23 0%, rgba(26, 26, 35, 0) 52%),
-    radial-gradient(100% 120% at 50% 130%, #0e0e14 0%, #08090c 100%);
+    radial-gradient(130% 90% at 50% -25%, #ffffff 0%, rgba(255, 255, 255, 0) 55%),
+    radial-gradient(100% 120% at 50% 130%, #ececf0 0%, #e8e8ed 100%);
 }
 
-/* Node material: an opaque, top-lit object that floats on the stage.
-   No backdrop-blur here — dozens of these must stay cheap to pan. The Apple
-   feel comes from the top light edge + the layered ambient/key shadow. */
+/* Node material: a white card floating on the stage. No backdrop-blur here —
+   dozens of these must stay cheap to pan. The Apple feel comes from the soft
+   diffuse shadow doing the lifting, not the border. */
 .iris-card {
-  background: linear-gradient(180deg, #26262f 0%, #1c1c23 100%);
-  border: 0.5px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+  border: 0.5px solid rgba(20, 20, 30, 0.06);
   box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.35),
-    0 10px 26px -8px rgba(0, 0, 0, 0.5),
-    0 22px 50px -16px rgba(0, 0, 0, 0.38);
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(20, 20, 35, 0.04),
+    0 10px 26px -8px rgba(20, 20, 35, 0.1),
+    0 22px 50px -16px rgba(20, 20, 35, 0.08);
   transition: box-shadow 0.25s ease, border-color 0.2s ease;
 }
 .iris-card:hover {
-  border-color: rgba(255, 255, 255, 0.11);
+  border-color: rgba(20, 20, 30, 0.09);
   box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.08),
-    0 1px 3px rgba(0, 0, 0, 0.4),
-    0 14px 34px -8px rgba(0, 0, 0, 0.55),
-    0 30px 66px -18px rgba(0, 0, 0, 0.45);
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+    0 1px 3px rgba(20, 20, 35, 0.05),
+    0 14px 34px -8px rgba(20, 20, 35, 0.13),
+    0 30px 66px -18px rgba(20, 20, 35, 0.11);
 }
 .iris-card-selected {
-  border-color: rgba(74, 134, 247, 0.75) !important;
+  border-color: rgba(74, 134, 247, 0.65) !important;
   box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.08),
-    0 0 0 1px rgba(74, 134, 247, 0.4),
-    0 0 22px -2px rgba(74, 134, 247, 0.4),
-    0 12px 30px -8px rgba(0, 0, 0, 0.55) !important;
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(74, 134, 247, 0.35),
+    0 0 22px -2px rgba(74, 134, 247, 0.3),
+    0 12px 30px -8px rgba(20, 20, 35, 0.14) !important;
 }
 /* A node breathing while it renders — the spectrum's violet, alive. */
 .iris-card-exec {
@@ -117,46 +118,46 @@
 @keyframes iris-breathe {
   0%, 100% {
     box-shadow:
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.06),
-      0 0 0 1px rgba(123, 108, 246, 0.32),
-      0 0 16px -3px rgba(123, 108, 246, 0.3),
-      0 12px 30px -8px rgba(0, 0, 0, 0.5);
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+      0 0 0 1px rgba(123, 108, 246, 0.3),
+      0 0 16px -3px rgba(123, 108, 246, 0.25),
+      0 12px 30px -8px rgba(20, 20, 35, 0.12);
   }
   50% {
     box-shadow:
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.06),
-      0 0 0 1px rgba(123, 108, 246, 0.6),
-      0 0 34px 0 rgba(123, 108, 246, 0.55),
-      0 12px 30px -8px rgba(0, 0, 0, 0.5);
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+      0 0 0 1px rgba(123, 108, 246, 0.55),
+      0 0 34px 0 rgba(123, 108, 246, 0.4),
+      0 12px 30px -8px rgba(20, 20, 35, 0.12);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .iris-card-exec { animation: none; box-shadow: 0 0 0 1px rgba(123,108,246,0.5), 0 12px 30px -8px rgba(0,0,0,0.5) !important; }
+  .iris-card-exec { animation: none; box-shadow: 0 0 0 1px rgba(123,108,246,0.45), 0 12px 30px -8px rgba(20,20,35,0.12) !important; }
 }
 .iris-card-error {
-  border-color: rgba(248, 113, 113, 0.8) !important;
+  border-color: rgba(239, 68, 68, 0.7) !important;
   box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.05),
-    0 0 0 1px rgba(248, 113, 113, 0.4),
-    0 12px 30px -8px rgba(0, 0, 0, 0.5) !important;
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(239, 68, 68, 0.35),
+    0 12px 30px -8px rgba(20, 20, 35, 0.12) !important;
 }
 
 /* Frosted chrome — real vibrancy, few instances, always on top. */
 .iris-topbar {
-  background: rgba(15, 15, 20, 0.72);
+  background: rgba(250, 250, 252, 0.78);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.05);
+  border-bottom: 0.5px solid rgba(20, 20, 30, 0.07);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.7);
 }
 .iris-glass {
-  background: rgba(24, 24, 30, 0.68);
+  background: rgba(255, 255, 255, 0.74);
   -webkit-backdrop-filter: blur(22px) saturate(180%);
   backdrop-filter: blur(22px) saturate(180%);
-  border: 0.5px solid rgba(255, 255, 255, 0.09);
+  border: 0.5px solid rgba(20, 20, 30, 0.07);
   box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.08),
-    0 10px 32px -8px rgba(0, 0, 0, 0.5);
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+    0 10px 32px -8px rgba(20, 20, 35, 0.16);
 }
 
 html {
@@ -276,7 +277,7 @@ body {
 }
 
 .react-flow__edge-path {
-  stroke: #7c7c8b;
+  stroke: #b4b4c0;
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -315,34 +316,34 @@ body {
   cursor: nesw-resize !important;
 }
 
-/* React Flow Controls dark theme */
+/* React Flow Controls — light chrome */
 .react-flow__controls {
-  background: #262626 !important;
-  border: 1px solid #404040 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 0.5px solid rgba(20, 20, 30, 0.08) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 14px -2px rgba(20, 20, 35, 0.12) !important;
 }
 
 .react-flow__controls-button {
-  background: #262626 !important;
-  border-bottom: 1px solid #404040 !important;
+  background: transparent !important;
+  border-bottom: 1px solid rgba(20, 20, 30, 0.06) !important;
 }
 
 .react-flow__controls-button svg {
-  fill: #d4d4d4 !important;
+  fill: #6b6b78 !important;
 }
 
 .react-flow__controls-button svg path {
-  fill: #d4d4d4 !important;
+  fill: #6b6b78 !important;
 }
 
 .react-flow__controls-button:hover {
-  background: #404040 !important;
+  background: rgba(20, 20, 30, 0.05) !important;
 }
 
 .react-flow__controls-button:hover svg,
 .react-flow__controls-button:hover svg path {
-  fill: #fafafa !important;
+  fill: #1b1b21 !important;
 }
 
 .react-flow__controls-button:last-child {
@@ -356,17 +357,17 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #262626;
+  background: transparent;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #525252;
+  background: #c9c9d2;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #737373;
+  background: #a9a9b4;
 }
 
 /* Make the multi-selection box pass through pointer events so we can still
